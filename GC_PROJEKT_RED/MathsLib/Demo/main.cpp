@@ -5,6 +5,7 @@
 #include "Maths/Vec4.h"
 #include "Platform/CpuFeatures.h"
 
+#include <immintrin.h>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
