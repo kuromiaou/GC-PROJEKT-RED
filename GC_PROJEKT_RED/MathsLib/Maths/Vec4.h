@@ -88,6 +88,11 @@ namespace Maths
         return _mm_mul_ps(a, b);
     }
 
+    inline __m128 Div(__m128 a, __m128 b)
+    {
+        return _mm_div_ps(a, b);
+    }
+
     // ---------- double ----------
     inline __m256d Load(const Vec4<double>& v)
     {
@@ -96,7 +101,7 @@ namespace Maths
 
     inline Vec4<double> Store(__m256d r)
     {
-        alignas(32) double c[4];        // 32, not 16: _mm256_store_pd needs 32-byte alignment
+        alignas(32) double c[4];
         _mm256_store_pd(c, r);
         return { c[0], c[1], c[2], c[3] };
     }
@@ -114,6 +119,15 @@ namespace Maths
     inline __m256d Mul(__m256d a, __m256d b)
     {
         return _mm256_mul_pd(a, b);
+    }
+    inline __m256d Mul(float a)
+    {
+        //return _mm256_mul_pd(b);
+    }
+
+    inline __m256d Div(__m256d a, __m256d b)
+    {
+        return _mm256_div_pd(a, b);
     }
 
     template <std::floating_point T>
