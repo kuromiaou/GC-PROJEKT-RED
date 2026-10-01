@@ -22,6 +22,12 @@ namespace Maths
         template <std::floating_point U>
         explicit Vec4(const Vec4<U>& other);
 
+        template <std::floating_point U>
+        inline __m128 Load(const Vec4<U>& v);
+
+        template <std::floating_point U>
+        inline Vec4<U> Store(__m128 val);
+
         Vec4 operator+(const Vec4& rhs) const;
         Vec4 operator-(const Vec4& rhs) const;
         Vec4 operator*(const Vec4& rhs) const;
@@ -57,7 +63,25 @@ namespace Maths
         static const Vec4 UnitZ;
         static const Vec4 UnitW;
     };
+    template <std::floating_point U>
+    inline __m128 Load(const Vec4<U>& v)
+    {
+        return _mm_setr_ps(v.x, v.y, v.z, v.w);
+    }
 
+    template <std::floating_point U>
+    inline Vec4<U> Store(__m128 val)
+    {
+        float components[4];
+        _mm_storeu_ps(components, val);
+
+        return {
+            components[0],
+            components[1],
+            components[2],
+            components[3]
+        };
+    }
     template <std::floating_point T>
     Vec4<T>::Vec4() : x(0), y(0), z(0), w(0)
     {
