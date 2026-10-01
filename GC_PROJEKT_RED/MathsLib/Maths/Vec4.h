@@ -1,5 +1,7 @@
 #pragma once
 
+#include <immintrin.h>
+#include <type_traits>
 #include <algorithm>
 #include <cmath>
 #include <concepts>
@@ -22,11 +24,6 @@ namespace Maths
         template <std::floating_point U>
         explicit Vec4(const Vec4<U>& other);
 
-        template <std::floating_point U>
-        inline __m128 Load(const Vec4<U>& v);
-
-        template <std::floating_point U>
-        inline Vec4<U> Store(__m128 val);
 
         Vec4 operator+(const Vec4& rhs) const;
         Vec4 operator-(const Vec4& rhs) const;
@@ -63,25 +60,62 @@ namespace Maths
         static const Vec4 UnitZ;
         static const Vec4 UnitW;
     };
-    template <std::floating_point U>
-    inline __m128 Load(const Vec4<U>& v)
+    // ---------- float ----------
+    inline __m128 Load(const Vec4<float>& v)
     {
         return _mm_setr_ps(v.x, v.y, v.z, v.w);
     }
 
-    template <std::floating_point U>
-    inline Vec4<U> Store(__m128 val)
+    inline Vec4<float> Store(__m128 r)
     {
-        float components[4];
-        _mm_storeu_ps(components, val);
-
-        return {
-            components[0],
-            components[1],
-            components[2],
-            components[3]
-        };
+        alignas(16) float c[4];
+        _mm_store_ps(c, r);
+        return { c[0], c[1], c[2], c[3] };
     }
+
+    inline __m128 Add(__m128 a, __m128 b)
+    {
+        return _mm_add_ps(a, b);
+    }
+    //a - b
+    inline __m128 Sub(__m128 a, __m128 b)
+    {
+        return _mm_sub_ps(a, b);
+    }
+
+    inline __m128 Mul(__m128 a, __m128 b)
+    {
+        return _mm_mul_ps(a, b);
+    }
+
+    // ---------- double ----------
+    inline __m256d Load(const Vec4<double>& v)
+    {
+        return _mm256_setr_pd(v.x, v.y, v.z, v.w);
+    }
+
+    inline Vec4<double> Store(__m256d r)
+    {
+        alignas(32) double c[4];        // 32, not 16: _mm256_store_pd needs 32-byte alignment
+        _mm256_store_pd(c, r);
+        return { c[0], c[1], c[2], c[3] };
+    }
+
+    inline __m256d Add(__m256d a, __m256d b)
+    {
+        return _mm256_add_pd(a, b);
+    }
+    //a - b
+    inline __m256d Sub(__m256d a, __m256d b)
+    {
+        return _mm256_sub_pd(a, b);
+    }
+
+    inline __m256d Mul(__m256d a, __m256d b)
+    {
+        return _mm256_mul_pd(a, b);
+    }
+
     template <std::floating_point T>
     Vec4<T>::Vec4() : x(0), y(0), z(0), w(0)
     {
@@ -104,19 +138,19 @@ namespace Maths
     template <std::floating_point T>
     Vec4<T> Vec4<T>::operator+(const Vec4& rhs) const
     {
-        return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w};
+        return Store(Add(Load(*this), Load(rhs)));
     }
 
     template <std::floating_point T>
     Vec4<T> Vec4<T>::operator-(const Vec4& rhs) const
     {
-        return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w};
+        return Store(Sub(Load(*this), Load(rhs)));
     }
 
     template <std::floating_point T>
     Vec4<T> Vec4<T>::operator*(const Vec4& rhs) const
     {
-        return {x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w};
+        return Store(Mul(Load(*this), Load(rhs)));
     }
 
     template <std::floating_point T>
