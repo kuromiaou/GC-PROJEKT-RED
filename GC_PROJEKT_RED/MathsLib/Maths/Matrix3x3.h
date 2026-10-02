@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vec3.h"
+#include "Vec3f.h"
 #include <array>
 #include <limits>
 #include <utility>

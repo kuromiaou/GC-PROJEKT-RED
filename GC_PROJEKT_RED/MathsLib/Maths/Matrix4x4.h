@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Vec4.h"
-#include "Vec3.h"
+#include "Vec4f.h"
+#include "Vec3f.h"
 #include <array>
 #include <limits>
 #include <utility>
@@ -25,7 +25,7 @@ namespace Maths
         Matrix4x4 operator+(const Matrix4x4& rhs) const;
         Matrix4x4 operator-(const Matrix4x4& rhs) const;
         Matrix4x4 operator*(const Matrix4x4& rhs) const;
-        Vec4<T> operator*(const Vec4<T>& rhs) const;
+        Vec4f operator*(const Vec4f& rhs) const;
         Matrix4x4 operator*(T scalar) const;
         Matrix4x4& operator*=(const Matrix4x4& rhs);
         bool operator==(const Matrix4x4& rhs) const;
@@ -142,13 +142,9 @@ namespace Maths
     }
 
     template <std::floating_point T>
-    Vec4<T> Matrix4x4<T>::operator*(const Vec4<T>& rhs) const
+    Vec4f Matrix4x4<T>::operator*(const Vec4f& rhs) const
     {
         return {
-            values[0][0] * rhs.x + values[0][1] * rhs.y + values[0][2] * rhs.z + values[0][3] * rhs.w,
-            values[1][0] * rhs.x + values[1][1] * rhs.y + values[1][2] * rhs.z + values[1][3] * rhs.w,
-            values[2][0] * rhs.x + values[2][1] * rhs.y + values[2][2] * rhs.z + values[2][3] * rhs.w,
-            values[3][0] * rhs.x + values[3][1] * rhs.y + values[3][2] * rhs.z + values[3][3] * rhs.w
         };
     }
 
@@ -396,7 +392,7 @@ namespace Maths
         {
             throw std::domain_error("Transform requires an affine matrix");
         }
-        const Vec4<T> result = *this * Vec4<T>(point.x, point.y, point.z, T{1});
+        const Vec4f result = *this * Vec4f(point.x, point.y, point.z, T{1});
         return {result.x, result.y, result.z};
     }
 
@@ -408,7 +404,7 @@ namespace Maths
         {
             throw std::domain_error("Transform requires an affine matrix");
         }
-        const Vec4<T> result = *this * Vec4<T>(direction.x, direction.y, direction.z, T{0});
+        const Vec4f result = *this * Vec4f(direction.x, direction.y, direction.z, T{0});
         return {result.x, result.y, result.z};
     }
 

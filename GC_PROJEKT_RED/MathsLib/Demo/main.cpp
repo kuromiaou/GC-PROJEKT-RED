@@ -1,9 +1,13 @@
-#include "Benchmark/Benchmark.h"
-#include "Maths/Matrix3x3.h"
-#include "Maths/Matrix4x4.h"
-#include "Maths/Vec3.h"
-#include "Maths/Vec4.h"
-#include "Platform/CpuFeatures.h"
+//#include "Benchmark/Benchmark.h"
+//#include "Maths/Matrix3x3.h"
+//#include "Maths/Matrix4x4.h"
+//#include "Maths/Vec3f.h"
+#include "Maths/Vec4f.h"
+#include "Maths/Base_Matrix3x3.h"
+#include "Maths/Base_Matrix4x4.h"
+#include "Maths/Base_Vec3.h"
+#include "Maths/Base_Vec4.h"
+//#include "Platform/CpuFeatures.h"
 
 #include <immintrin.h>
 #include <cstdlib>
@@ -12,29 +16,61 @@
 #include <random>
 #include <vector>
 
+#define ANKERL_NANOBENCH_IMPLEMENT
+#include <Benchmark/nanobench.h>
+
+//#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+//#include <Benchmark/doctest.h>
+//
+//#include <chrono>
+//#include <thread>
 int main(/*const int _argc, char** _argv*/)
 {
-//    using Maths::Vec3;
-    using Maths::Vec4;
-    const Vec4<float> a{1,2,3,4};
-    const Vec4<float> b{1,2,3,4};
-    const Vec4<float> c = a + b;
-    const Vec4<float> d = a - b;
-    const Vec4<float> e = a * b;
-    const Vec4<double> a1{1,2,3,4};
-    const Vec4<double> b1{1,2,3,4};
-    const Vec4<double> c1 = a1 + b1;
-    const Vec4<double> d1 = a1 - b1;
-    const Vec4<double> e1 = a1 * b1;
-    std::cout << "-------- Floats --------" << std::endl;
-    std::cout << c.w << std::endl;
-    std::cout << d.w << std::endl;
-    std::cout << e.w << std::endl;
-    std::cout << "-------- Double --------" << std::endl;
-    std::cout << c1.w << std::endl;
-    std::cout << d1.w << std::endl;
-    std::cout << e1.w << std::endl;
+    //    using Maths::Vec3;
+    using Maths::Vec4f;
+    using Base_Maths::BVec4;
+
+    double d = 1;
+
+    const Vec4f a{ 1,2,3,4 };
+    const Vec4f b{ 1,2,3,4 };
+
+    const BVec4<float> ba{ 1,2,3,4 };
+    const BVec4<float> bb{ 1,2,3,4 };
+
+    Vec4f c;
+    BVec4<float> bc;
+
+    //std::cout << "-------- Floats --------" << std::endl;
+    //std::cout << c.w << std::endl;
+    //std::cout << d.w << std::endl;
+    //std::cout << e.w << std::endl;
+    //std::cout << "-------- Double --------" << std::endl;
+    //std::cout << c1.w << std::endl;
+    //std::cout << d1.w << std::endl;
+    //std::cout << e1.w << std::endl;
+
+    ankerl::nanobench::Bench().epochs(2000).run("++", [&] {;
+
+    c = a / b;
+
+    ankerl::nanobench::doNotOptimizeAway(d);
+
+        });
+
+    ankerl::nanobench::Bench().epochs(2000).run("++", [&] {;
+
+    bc = ba / bb;
+
+    ankerl::nanobench::doNotOptimizeAway(d);
+    
+        });
+
+    std::cout << c.reg.m128_f32[0];
     return 0;
+}
+
+
 //    using Maths::Matrix4x4;
 //    const Vec3<> a{1,2,3};
 //    const Vec3<> b{4,5,6};
@@ -90,4 +126,3 @@ int main(/*const int _argc, char** _argv*/)
 //              << " ms, median " << result.medianMs
 //              << " ms, max " << result.maximumMs << " ms\n"
 //              << "Observable checksum: " << result.checksum << '\n';
-}

@@ -120,10 +120,10 @@ namespace Maths
     {
         return _mm256_mul_pd(a, b);
     }
-    inline __m256d Mul(float a)
-    {
-        //return _mm256_mul_pd(b);
-    }
+    //inline __m256d Mul(float a)
+    //{
+    //    //return _mm256_mul_pd(b);
+    //}
 
     inline __m256d Div(__m256d a, __m256d b)
     {
