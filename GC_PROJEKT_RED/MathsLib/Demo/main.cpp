@@ -65,8 +65,8 @@ int main(/*const int _argc, char** _argv*/)
     ankerl::nanobench::doNotOptimizeAway(d);
     
         });
-
-    std::cout << c.reg.m128_f32[0];
+    c = -c;
+    std::cout << c.reg.m128_f32[2];
     return 0;
 }
 

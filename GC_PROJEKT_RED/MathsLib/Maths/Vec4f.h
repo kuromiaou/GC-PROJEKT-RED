@@ -26,9 +26,9 @@ namespace Maths
         Vec4f operator-(const Vec4f& rhs) const;
         Vec4f operator*(const Vec4f& rhs) const;
         Vec4f operator/(const Vec4f& rhs) const;
-        /*
-        Vec4f operator-() const;
-        template <std::floating_point T = float>
+        
+        Vec4f operator-(const Vec4f& rhs) const;
+        /*template <std::floating_point T = float>
         Vec4f operator*(T scalar) const;
         template <std::floating_point T = float>
         Vec4f operator/(T scalar) const;
@@ -94,12 +94,12 @@ namespace Maths
 
     }
 
-    /*Vec4f Vec4f::operator-() const
+    Vec4f Vec4f::operator-(const Vec4f& rhs) const
     {
-        
+        _mm_set1_ss
     }
 
-    template <std::floating_point T>
+    /*template <std::floating_point T>
     Vec4f Vec4f::operator*(T scalar) const
     {
     }
