@@ -29,40 +29,40 @@ namespace Maths
         inline Vec4f operator-() const;
 
         template <std::floating_point T = float>
-        Vec4f operator*(T scalar) const;
+        inline Vec4f operator*(T scalar) const;
         template <std::floating_point T = float>
-        Vec4f operator/(T scalar) const;
-        Vec4f operator+=(const Vec4f& rhs);
-        Vec4f operator-=(const Vec4f& rhs);
-        Vec4f operator*=(const Vec4f& rhs);
-        Vec4f operator/=(const Vec4f& rhs);
+        inline Vec4f operator/(T scalar) const;
+        inline Vec4f& operator+=(const Vec4f& rhs);
+        inline Vec4f& operator-=(const Vec4f& rhs);
+        inline Vec4f& operator*=(const Vec4f& rhs);
+        inline Vec4f& operator/=(const Vec4f& rhs);
         template <std::floating_point T = float>
-        Vec4f operator*=(T scalar);
+        inline Vec4f& operator*=(T scalar);
         template <std::floating_point T = float>
-        Vec4f operator/=(T scalar);
-        bool operator==(const Vec4f& rhs) const;
-        bool operator!=(const Vec4f& rhs) const;
-        /*
-        float Dot(const Vec4f& rhs) const;
-        float MagnitudeSquared() const;
-        float Magnitude() const;
+        inline Vec4f& operator/=(T scalar);
+        inline bool operator==(const Vec4f& rhs) const;
+        inline bool operator!=(const Vec4f& rhs) const;
+        
+        inline float Dot(const Vec4f& rhs) const;
+        /*inline float MagnitudeSquared() const;
+        inline float Magnitude() const;
 
-        Vec4f Normalize() const;
-        float DistanceSquared(const Vec4f& rhs) const;
-        float Distance(const Vec4f& rhs) const;
-        float Angle(const Vec4f& rhs) const;
+        inline Vec4f Normalize() const;
+        inline float DistanceSquared(const Vec4f& rhs) const;
+        inline float Distance(const Vec4f& rhs) const;
+        inline float Angle(const Vec4f& rhs) const;
 
         template <std::floating_point T = float>
-        static Vec4f Lerp(const Vec4f& a, const Vec4f& b, T t);
-        static Vec4f Min(const Vec4f& a, const Vec4f& b);
-        static Vec4f Max(const Vec4f& a, const Vec4f& b);
-
+        inline static Vec4f Lerp(const Vec4f& a, const Vec4f& b, T t);
+        inline static Vec4f Min(const Vec4f& a, const Vec4f& b);
+        inline static Vec4f Max(const Vec4f& a, const Vec4f& b);
+        */
         static const Vec4f Zero;
         static const Vec4f One;
         static const Vec4f UnitX;
         static const Vec4f UnitY;        
         static const Vec4f UnitZ;
-        static const Vec4f UnitW;*/
+        static const Vec4f UnitW;
     };
 
 
@@ -98,107 +98,119 @@ namespace Maths
     }
 
     template <std::floating_point T>
-    Vec4f Vec4f::operator*(T scalar) const
+    inline Vec4f Vec4f::operator*(T scalar) const
     {
 		return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
     
     template <std::floating_point T>
-    Vec4f Vec4f::operator/(T scalar) const
+    inline Vec4f Vec4f::operator/(T scalar) const
     {
 		assert(scalar != 0.f);
         return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
     
-    Vec4f Vec4f::operator+=(const Vec4f& rhs)
+    inline Vec4f& Vec4f::operator+=(const Vec4f& rhs)
     {
-        return _mm_add_ps(reg, rhs.reg);
+		reg = _mm_add_ps(reg, rhs.reg);
+        return *this;
     }
 
-    Vec4f Vec4f::operator-=(const Vec4f& rhs)
+    inline Vec4f& Vec4f::operator-=(const Vec4f& rhs)
     {
-        return _mm_sub_ps(reg, rhs.reg);
+        reg = _mm_sub_ps(reg, rhs.reg);
+        return *this;
     }
 
-    Vec4f Vec4f::operator*=(const Vec4f& rhs)
+    inline Vec4f& Vec4f::operator*=(const Vec4f& rhs)
     {
-        return _mm_mul_ps(reg, rhs.reg);
+        reg = _mm_mul_ps(reg, rhs.reg);
+        return *this;
     }
 
-    Vec4f Vec4f::operator/=(const Vec4f& rhs)
+    inline Vec4f& Vec4f::operator/=(const Vec4f& rhs)
     {
         assert(rhs.reg.m128_f32[0] != 0.f and rhs.reg.m128_f32[1] != 0.f and rhs.reg.m128_f32[2] != 0.f and rhs.reg.m128_f32[3] != 0.f);
-        return _mm_div_ps(reg, rhs.reg);
+        reg = _mm_div_ps(reg, rhs.reg);
+        return *this;
     }
 
     template <std::floating_point T>
-    Vec4f Vec4f::operator*=(T scalar)
+    inline Vec4f& Vec4f::operator*=(T scalar)
     {
-        return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        reg = _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        return *this;
     }
 
     template <std::floating_point T>
-    Vec4f Vec4f::operator/=(T scalar)
+    inline Vec4f& Vec4f::operator/=(T scalar)
     {
         assert(scalar != 0.f);
-        return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        reg = _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        return *this;
     }
 
-    bool Vec4f::operator==(const Vec4f& rhs) const
+    inline bool Vec4f::operator==(const Vec4f& rhs) const
     {
-        //return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
-        return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
+        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
+        //return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
     }
 
-    bool Vec4f::operator!=(const Vec4f& rhs) const
+    inline bool Vec4f::operator!=(const Vec4f& rhs) const
     {
-        //return !((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
-        return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
+        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) != 0xF));
+        //return !(_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)));
     }
-    /*
+    
     float Vec4f::Dot(const Vec4f& rhs) const
     {
-    }
 
-    float Vec4f::MagnitudeSquared() const
+    }
+    /*
+    inline float Vec4f::MagnitudeSquared() const
     {
-        return Dot(*this);
+        
     }
 
-    float Vec4f::Magnitude() const
-    {
-    }
-
-    Vec4f Vec4f::Normalize() const
+    inline float Vec4f::Magnitude() const
     {
     }
 
-    float Vec4f::DistanceSquared(const Vec4f& rhs) const
+    inline Vec4f Vec4f::Normalize() const
     {
-        return (*this - rhs).MagnitudeSquared();
     }
 
-    float Vec4f::Distance(const Vec4f& rhs) const
+    inline float Vec4f::DistanceSquared(const Vec4f& rhs) const
     {
-        return (*this - rhs).Magnitude();
+        
     }
 
-    float Vec4f::Angle(const Vec4f& rhs) const
+    inline float Vec4f::Distance(const Vec4f& rhs) const
+    {
+        
+    }
+
+    inline float Vec4f::Angle(const Vec4f& rhs) const
     {
     }
 
     template <std::floating_point T>
-    Vec4f Vec4f::Lerp(const Vec4f& a, const Vec4f& b, T t)
+    inline Vec4f Vec4f::Lerp(const Vec4f& a, const Vec4f& b, T t)
     {
     }
 
-    Vec4f Vec4f::Min(const Vec4f& a, const Vec4f& b)
+    inline Vec4f Vec4f::Min(const Vec4f& a, const Vec4f& b)
     {
     }
 
-    Vec4f Vec4f::Max(const Vec4f& a, const Vec4f& b)
+    inline Vec4f Vec4f::Max(const Vec4f& a, const Vec4f& b)
     {
     }
+    template <std::floating_point T>
+    inline Vec4f operator*(T scalar, const Vec4f& vector)
+    {
+        return vector * scalar;
+    }*/
 
     const Vec4f Vec4f::Zero{0, 0, 0, 0};
 
@@ -212,10 +224,5 @@ namespace Maths
 
     const Vec4f Vec4f::UnitW{0, 0, 0, 1};
 
-    template <std::floating_point T>
-    Vec4f operator*(T scalar, const Vec4f& vector)
-    {
-        return vector * scalar;
-    }*/
 
 }

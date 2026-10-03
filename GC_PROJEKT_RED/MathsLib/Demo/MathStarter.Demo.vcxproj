@@ -84,11 +84,11 @@
     <ClInclude Include="..\Maths\Base_Matrix4x4.h" />
     <ClInclude Include="..\Maths\Base_Vec3.h" />
     <ClInclude Include="..\Maths\Base_Vec4.h" />
+    <ClInclude Include="..\Maths\Vec3d.h" />
     <ClInclude Include="..\Maths\Vec3f.h" />
     <ClInclude Include="..\Maths\Vec4f.h" />
     <ClInclude Include="..\Maths\Vec4d.h" />
     <ClInclude Include="..\Benchmark\Benchmark.h" />
-    <ClInclude Include="Vec3d.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)/Microsoft.Cpp.targets" />
 </Project>

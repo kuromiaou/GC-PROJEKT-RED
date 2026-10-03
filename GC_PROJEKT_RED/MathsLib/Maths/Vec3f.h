@@ -29,40 +29,40 @@ namespace Maths
         inline Vec3f operator-() const;
 
         template <std::floating_point T = float>
-        Vec3f operator*(T scalar) const;
+        inline Vec3f operator*(T scalar) const;
         template <std::floating_point T = float>
-        Vec3f operator/(T scalar) const;
-        Vec3f operator+=(const Vec3f& rhs);
-        Vec3f operator-=(const Vec3f& rhs);
-        Vec3f operator*=(const Vec3f& rhs);
-        Vec3f operator/=(const Vec3f& rhs);
+        inline Vec3f operator/(T scalar) const;
+        inline Vec3f& operator+=(const Vec3f& rhs);
+        inline Vec3f& operator-=(const Vec3f& rhs);
+        inline Vec3f& operator*=(const Vec3f& rhs);
+        inline Vec3f& operator/=(const Vec3f& rhs);
         template <std::floating_point T = float>
-        Vec3f operator*=(T scalar);
+        inline Vec3f& operator*=(T scalar);
         template <std::floating_point T = float>
-        Vec3f operator/=(T scalar);
-        bool operator==(const Vec3f& rhs) const;
-        bool operator!=(const Vec3f& rhs) const;
+        inline Vec3f& operator/=(T scalar);
+        inline bool operator==(const Vec3f& rhs) const;
+        inline bool operator!=(const Vec3f& rhs) const;
         /*
-        float Dot(const Vec3f& rhs) const;
-        float MagnitudeSquared() const;
-        float Magnitude() const;
+        inline float Dot(const Vec3f& rhs) const;
+        inline float MagnitudeSquared() const;
+        inline float Magnitude() const;
 
-        Vec3f Normalize() const;
-        float DistanceSquared(const Vec3f& rhs) const;
-        float Distance(const Vec3f& rhs) const;
-        float Angle(const Vec3f& rhs) const;
+        inline Vec3f Normalize() const;
+        inline float DistanceSquared(const Vec3f& rhs) const;
+        inline float Distance(const Vec3f& rhs) const;
+        inline float Angle(const Vec3f& rhs) const;
 
-        template <std::floating_point T = float>
-        static Vec3f Lerp(const Vec3f& a, const Vec3f& b, T t);
-        static Vec3f Min(const Vec3f& a, const Vec3f& b);
-        static Vec3f Max(const Vec3f& a, const Vec3f& b);
+        inline template <std::floating_point T = float>
+        inline static Vec3f Lerp(const Vec3f& a, const Vec3f& b, T t);
+        inline static Vec3f Min(const Vec3f& a, const Vec3f& b);
+        inline static Vec3f Max(const Vec3f& a, const Vec3f& b);
 
-        static const Vec3f Zero;
-        static const Vec3f One;
-        static const Vec3f UnitX;
-        static const Vec3f UnitY;
-        static const Vec3f UnitZ;
-        static const Vec3f UnitW;*/
+        inline static const Vec3f Zero;
+        inline static const Vec3f One;
+        inline static const Vec3f UnitX;
+        inline static const Vec3f UnitY;
+        inline static const Vec3f UnitZ;
+        inline static const Vec3f UnitW;*/
     };
 
 
@@ -98,62 +98,68 @@ namespace Maths
     }
 
     template <std::floating_point T>
-    Vec3f Vec3f::operator*(T scalar) const
+    inline Vec3f Vec3f::operator*(T scalar) const
     {
         return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
 
     template <std::floating_point T>
-    Vec3f Vec3f::operator/(T scalar) const
+    inline Vec3f Vec3f::operator/(T scalar) const
     {
         assert(scalar != 0.f);
         return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
 
-    Vec3f Vec3f::operator+=(const Vec3f& rhs)
+    inline Vec3f& Vec3f::operator+=(const Vec3f& rhs)
     {
-        return _mm_add_ps(reg, rhs.reg);
+        reg = _mm_add_ps(reg, rhs.reg);
+        return *this;
     }
 
-    Vec3f Vec3f::operator-=(const Vec3f& rhs)
+    inline Vec3f& Vec3f::operator-=(const Vec3f& rhs)
     {
-        return _mm_sub_ps(reg, rhs.reg);
+        reg = _mm_sub_ps(reg, rhs.reg);
+        return *this;
     }
 
-    Vec3f Vec3f::operator*=(const Vec3f& rhs)
+    inline Vec3f& Vec3f::operator*=(const Vec3f& rhs)
     {
-        return _mm_mul_ps(reg, rhs.reg);
+        reg = _mm_mul_ps(reg, rhs.reg);
+        return *this;
     }
 
-    Vec3f Vec3f::operator/=(const Vec3f& rhs)
+    inline Vec3f& Vec3f::operator/=(const Vec3f& rhs)
     {
         assert(rhs.reg.m128_f32[0] != 0.f and rhs.reg.m128_f32[1] != 0.f and rhs.reg.m128_f32[2] != 0.f);
-        return _mm_div_ps(reg, rhs.reg);
+        reg = _mm_div_ps(reg, rhs.reg);
+        return *this;
     }
 
     template <std::floating_point T>
-    Vec3f Vec3f::operator*=(T scalar)
+    inline Vec3f& Vec3f::operator*=(T scalar)
     {
-        return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        reg = _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        return *this;
     }
 
     template <std::floating_point T>
-    Vec3f Vec3f::operator/=(T scalar)
+    inline Vec3f& Vec3f::operator/=(T scalar)
     {
         assert(scalar != 0.f);
-        return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        reg = _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+        return *this;
     }
 
-    bool Vec3f::operator==(const Vec3f& rhs) const
+    inline bool Vec3f::operator==(const Vec3f& rhs) const
     {
-        //return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
-        return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
+        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
+        //return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
     }
 
-    bool Vec3f::operator!=(const Vec3f& rhs) const
+    inline bool Vec3f::operator!=(const Vec3f& rhs) const
     {
-        //return !((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
-        return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
+        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) != 0xF));
+        //return !(_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)));
     }
     /*
     float Vec3f::Dot(const Vec3f& rhs) const

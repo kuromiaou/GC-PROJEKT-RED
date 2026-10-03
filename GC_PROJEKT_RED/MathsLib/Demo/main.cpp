@@ -4,6 +4,8 @@
 //#include "Maths/Vec3f.h"
 #include "Maths/Vec4f.h"
 #include "Maths/Vec4d.h"
+#include "Maths/Vec3f.h"
+#include "Maths/Vec3d.h"
 #include "Maths/Base_Matrix3x3.h"
 #include "Maths/Base_Matrix4x4.h"
 #include "Maths/Base_Vec3.h"
@@ -31,15 +33,14 @@ int main(/*const int _argc, char** _argv*/)
     using Maths::Vec4f;
     using Base_Maths::BVec4;
 
-    double d = 1;
 
-    const Vec4f a{ 1,2,3,4 };
-    const Vec4f b{ 1,2,3,4 };
+    Vec4f a{ 1,2,3,4 };
+    Vec4f b{ 5,6,7,8 };
 
-    const BVec4<float> ba{ 1,2,3,4 };
-    const BVec4<float> bb{ 1,2,3,4 };
+    BVec4<float> ba{ 1,2,3,4 };
+    BVec4<float> bb{ 1,2,3,4 };
 
-    Vec4f c;
+    Vec4f c{ 1,2,3,4 };
     BVec4<float> bc;
 
     //std::cout << "-------- Floats --------" << std::endl;
@@ -51,24 +52,24 @@ int main(/*const int _argc, char** _argv*/)
     //std::cout << d1.w << std::endl;
     //std::cout << e1.w << std::endl;
 
-    ankerl::nanobench::Bench().epochs(2000).run("++", [&] {;
+    ankerl::nanobench::Bench().minEpochIterations(740910).epochs(2000).run("++", [&] {;
 
-    c += a;
+    a += b;
 
-    ankerl::nanobench::doNotOptimizeAway(d);
+    ankerl::nanobench::doNotOptimizeAway(a.reg);
 
         });
 
-    ankerl::nanobench::Bench().epochs(2000).run("++", [&] {;
+    ankerl::nanobench::Bench().minEpochIterations(740910).epochs(2000).run("++", [&] {;
 
-    bc += ba;
+    ba += bb;
 
-    ankerl::nanobench::doNotOptimizeAway(d);
+    ankerl::nanobench::doNotOptimizeAway(bc);
     
         });
-    //c+= c;
+    c+= c;
     //c = -c;
-    std::cout << c.reg.m128_f32[2];
+    std::cout << c.reg.m128_f32[1];
     return 0;
 }
 
