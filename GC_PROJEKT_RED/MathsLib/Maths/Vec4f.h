@@ -43,7 +43,7 @@ namespace Maths
         inline bool operator==(const Vec4f& rhs) const;
         inline bool operator!=(const Vec4f& rhs) const;
         
-        inline float Dot(const Vec4f& rhs) const;
+        //inline float Dot(const Vec4f& rhs) const;
         /*inline float MagnitudeSquared() const;
         inline float Magnitude() const;
 
@@ -162,10 +162,10 @@ namespace Maths
         //return !(_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)));
     }
     
-    float Vec4f::Dot(const Vec4f& rhs) const
-    {
+    //float Vec4f::Dot(const Vec4f& rhs) const
+    //{
 
-    }
+    //}
     /*
     inline float Vec4f::MagnitudeSquared() const
     {
