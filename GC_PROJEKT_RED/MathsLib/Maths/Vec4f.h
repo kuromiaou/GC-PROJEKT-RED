@@ -22,27 +22,27 @@ namespace Maths
 
         Vec4f(__m128 val) : reg(val) {}
 
-        Vec4f operator+(const Vec4f& rhs) const;
-        Vec4f operator-(const Vec4f& rhs) const;
-        Vec4f operator*(const Vec4f& rhs) const;
-        Vec4f operator/(const Vec4f& rhs) const;
-        
-        Vec4f operator-(const Vec4f& rhs) const;
-        /*template <std::floating_point T = float>
+        inline Vec4f operator+(const Vec4f& rhs) const;
+        inline Vec4f operator-(const Vec4f& rhs) const;
+        inline Vec4f operator*(const Vec4f& rhs) const;
+        inline Vec4f operator/(const Vec4f& rhs) const;        
+        inline Vec4f operator-() const;
+
+        template <std::floating_point T = float>
         Vec4f operator*(T scalar) const;
         template <std::floating_point T = float>
         Vec4f operator/(T scalar) const;
-        Vec4f& operator+=(const Vec4f& rhs);
-        Vec4f& operator-=(const Vec4f& rhs);
-        Vec4f& operator*=(const Vec4f& rhs);
-        Vec4f& operator/=(const Vec4f& rhs);
+        Vec4f operator+=(const Vec4f& rhs);
+        Vec4f operator-=(const Vec4f& rhs);
+        Vec4f operator*=(const Vec4f& rhs);
+        Vec4f operator/=(const Vec4f& rhs);
         template <std::floating_point T = float>
-        Vec4f& operator*=(T scalar);
+        Vec4f operator*=(T scalar);
         template <std::floating_point T = float>
-        Vec4f& operator/=(T scalar);
+        Vec4f operator/=(T scalar);
         bool operator==(const Vec4f& rhs) const;
         bool operator!=(const Vec4f& rhs) const;
-
+        /*
         float Dot(const Vec4f& rhs) const;
         float MagnitudeSquared() const;
         float Magnitude() const;
@@ -67,7 +67,7 @@ namespace Maths
 
     // ---------- float ----------
 
-    Vec4f Vec4f::operator+(const Vec4f& rhs) const
+    inline Vec4f Vec4f::operator+(const Vec4f& rhs) const
     {
         //float res[4];
         //_mm_store_ps(res,_mm_add_ps(reg, rhs.reg));
@@ -76,86 +76,87 @@ namespace Maths
         return _mm_add_ps(reg, rhs.reg);
     }
 
-    Vec4f Vec4f::operator-(const Vec4f& rhs) const
+    inline Vec4f Vec4f::operator-(const Vec4f& rhs) const
     {
         return _mm_sub_ps(reg, rhs.reg);
     }
 
-
-    Vec4f Vec4f::operator*(const Vec4f& rhs) const
+    inline Vec4f Vec4f::operator*(const Vec4f& rhs) const
     {
         return _mm_mul_ps(reg, rhs.reg);
     }
 
-    Vec4f Vec4f::operator/(const Vec4f& rhs) const
+    inline Vec4f Vec4f::operator/(const Vec4f& rhs) const
     {
         assert(rhs.reg.m128_f32[0] != 0.f and rhs.reg.m128_f32[1] != 0.f and rhs.reg.m128_f32[2] != 0.f and rhs.reg.m128_f32[3] != 0.f);
         return _mm_div_ps(reg, rhs.reg);
-
     }
 
-    Vec4f Vec4f::operator-(const Vec4f& rhs) const
+    inline Vec4f Vec4f::operator-() const
     {
-        _mm_set1_ss
+        __m128 e = _mm_set_ss(-0.0f);
+		return _mm_xor_ps(reg, _mm_shuffle_ps(e, e, 0x00));
     }
 
-    /*template <std::floating_point T>
+    template <std::floating_point T>
     Vec4f Vec4f::operator*(T scalar) const
     {
+		return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
-
+    
     template <std::floating_point T>
     Vec4f Vec4f::operator/(T scalar) const
     {
+		assert(scalar != 0.f);
+        return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+    }
+    
+    Vec4f Vec4f::operator+=(const Vec4f& rhs)
+    {
+        return _mm_add_ps(reg, rhs.reg);
     }
 
-    Vec4f& Vec4f::operator+=(const Vec4f& rhs)
+    Vec4f Vec4f::operator-=(const Vec4f& rhs)
     {
-        *this = *this + rhs;
-        return *this;
+        return _mm_sub_ps(reg, rhs.reg);
     }
 
-    Vec4f& Vec4f::operator-=(const Vec4f& rhs)
+    Vec4f Vec4f::operator*=(const Vec4f& rhs)
     {
-        *this = *this - rhs;
-        return *this;
+        return _mm_mul_ps(reg, rhs.reg);
     }
 
-    Vec4f& Vec4f::operator*=(const Vec4f& rhs)
+    Vec4f Vec4f::operator/=(const Vec4f& rhs)
     {
-        *this = *this * rhs;
-        return *this;
-    }
-
-    Vec4f& Vec4f::operator/=(const Vec4f& rhs)
-    {
-        *this = *this / rhs;
-        return *this;
-    }
-
-    template <std::floating_point T>
-    Vec4f& Vec4f::operator*=(T scalar)
-    {
-        *this = *this * scalar;
-        return *this;
+        assert(rhs.reg.m128_f32[0] != 0.f and rhs.reg.m128_f32[1] != 0.f and rhs.reg.m128_f32[2] != 0.f and rhs.reg.m128_f32[3] != 0.f);
+        return _mm_div_ps(reg, rhs.reg);
     }
 
     template <std::floating_point T>
-    Vec4f& Vec4f::operator/=(T scalar)
+    Vec4f Vec4f::operator*=(T scalar)
     {
-        *this = *this / scalar;
-        return *this;
+        return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
+    }
+
+    template <std::floating_point T>
+    Vec4f Vec4f::operator/=(T scalar)
+    {
+        assert(scalar != 0.f);
+        return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
 
     bool Vec4f::operator==(const Vec4f& rhs) const
     {
+        //return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
+        return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
     }
 
     bool Vec4f::operator!=(const Vec4f& rhs) const
     {
-        return !(*this == rhs);
+        //return !((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
+        return _mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg));
     }
-
+    /*
     float Vec4f::Dot(const Vec4f& rhs) const
     {
     }

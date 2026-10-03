@@ -3,6 +3,7 @@
 //#include "Maths/Matrix4x4.h"
 //#include "Maths/Vec3f.h"
 #include "Maths/Vec4f.h"
+#include "Maths/Vec4d.h"
 #include "Maths/Base_Matrix3x3.h"
 #include "Maths/Base_Matrix4x4.h"
 #include "Maths/Base_Vec3.h"
@@ -52,7 +53,7 @@ int main(/*const int _argc, char** _argv*/)
 
     ankerl::nanobench::Bench().epochs(2000).run("++", [&] {;
 
-    c = a / b;
+    c += a;
 
     ankerl::nanobench::doNotOptimizeAway(d);
 
@@ -60,12 +61,13 @@ int main(/*const int _argc, char** _argv*/)
 
     ankerl::nanobench::Bench().epochs(2000).run("++", [&] {;
 
-    bc = ba / bb;
+    bc += ba;
 
     ankerl::nanobench::doNotOptimizeAway(d);
     
         });
-    c = -c;
+    //c+= c;
+    //c = -c;
     std::cout << c.reg.m128_f32[2];
     return 0;
 }
