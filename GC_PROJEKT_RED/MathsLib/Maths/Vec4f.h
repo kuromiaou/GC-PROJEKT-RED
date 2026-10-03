@@ -65,7 +65,6 @@ namespace Maths
         static const Vec4f UnitW;*/
     };
 
-    // ---------- float ----------
 
     inline Vec4f Vec4f::operator+(const Vec4f& rhs) const
     {
