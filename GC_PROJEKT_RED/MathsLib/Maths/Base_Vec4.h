@@ -198,7 +198,9 @@ namespace Base_Maths
     template <std::floating_point T>
     T BVec4<T>::Magnitude() const
     {
-        return std::hypot(std::hypot(x, y), std::hypot(z, w));
+        //return std::hypot(std::hypot(x, y), std::hypot(z, w));
+        return std::sqrt(x * x + y * y + z * z + w * w);
+
     }
 
     template <std::floating_point T>

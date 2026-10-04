@@ -33,15 +33,18 @@ int main(/*const int _argc, char** _argv*/)
     using Maths::Vec4f;
     using Base_Maths::BVec4;
 
-
+    Vec4f test;
     Vec4f a{ 1,2,3,4 };
     Vec4f b{ 5,6,7,8 };
 
     BVec4<float> ba{ 1,2,3,4 };
-    BVec4<float> bb{ 1,2,3,4 };
+    BVec4<float> bb{ 5,6,7,8 };
 
-    Vec4f c{ 1,2,3,4 };
-    BVec4<float> bc;
+    Vec4f c{ 3,0,4,0 };
+    BVec4<float> bc{ 3,0,4,0 };
+
+    float cFloat = 0.f;
+    float bcFloat = 0.f;
 
     //std::cout << "-------- Floats --------" << std::endl;
     //std::cout << c.w << std::endl;
@@ -52,24 +55,27 @@ int main(/*const int _argc, char** _argv*/)
     //std::cout << d1.w << std::endl;
     //std::cout << e1.w << std::endl;
 
-    ankerl::nanobench::Bench().minEpochIterations(740910).epochs(2000).run("++", [&] {;
+    ankerl::nanobench::Bench bench;
+    bench.epochs(2000);
 
-    a += b;
-
-    ankerl::nanobench::doNotOptimizeAway(a.reg);
-
+    bench.run("Angle", [&] {
+        ankerl::nanobench::doNotOptimizeAway(a);
+        cFloat = a.Angle(b);
+        ankerl::nanobench::doNotOptimizeAway(cFloat);
         });
 
-    ankerl::nanobench::Bench().minEpochIterations(740910).epochs(2000).run("++", [&] {;
-
-    ba += bb;
-
-    ankerl::nanobench::doNotOptimizeAway(bc);
-    
+    bench.run("Base_Angle", [&] {
+        ankerl::nanobench::doNotOptimizeAway(ba);
+        bcFloat = ba.Angle(bb);
+        ankerl::nanobench::doNotOptimizeAway(bcFloat);
         });
-    c+= c;
+
+    //cDot = a.Dot(b);
     //c = -c;
-    std::cout << c.reg.m128_f32[1];
+    //std::cout << c.reg.m128_f32[0] << " " << c.reg.m128_f32[1] << " " << c.reg.m128_f32[2] << " " << c.reg.m128_f32[3] << std::endl;
+    std::cout << cFloat << std::endl;
+    //std::cout << c.reg.m128_f32[1];
+
     return 0;
 }
 
