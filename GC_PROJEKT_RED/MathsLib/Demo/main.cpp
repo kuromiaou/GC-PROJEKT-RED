@@ -7,7 +7,9 @@
 #include "Maths/Vec3f.h"
 #include "Maths/Vec3d.h"
 #include "Maths/Base_Matrix3x3.h"
+#include "Maths/Matrix3x3.h"
 #include "Maths/Base_Matrix4x4.h"
+#include "Maths/Matrix4x4.h"
 #include "Maths/Base_Vec3.h"
 #include "Maths/Base_Vec4.h"
 //#include "Platform/CpuFeatures.h"
@@ -31,19 +33,27 @@ int main(/*const int _argc, char** _argv*/)
 {
     //    using Maths::Vec3;
     using Maths::Vec4f;
+    using Maths::Matrix4x4;
+    using Base_Maths::BMatrix4x4;
     using Base_Maths::BVec4;
 
     Vec4f test;
     Vec4f a{ 1,2,3,4 };
     Vec4f b{ 5,6,7,8 };
-
+    Matrix4x4 ma({ 1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f });
+    Matrix4x4 mb;
+    BMatrix4x4 bma({ 1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f });
+    BMatrix4x4 bmb;
     BVec4<float> ba{ 1,2,3,4 };
     BVec4<float> bb{ 5,6,7,8 };
 
     Vec4f c{ 3,0,4,0 };
     BVec4<float> bc{ 3,0,4,0 };
 
-    float cFloat = 2.f;
+    float e = 10.f;
+
+    //double d = 1;
+    //float cFloat = 0.f;
     //float bcFloat = 0.f;
 
     //std::cout << "-------- Floats --------" << std::endl;
@@ -58,22 +68,19 @@ int main(/*const int _argc, char** _argv*/)
     ankerl::nanobench::Bench bench;
     bench.epochs(2000);
 
-    bench.run("Lerp", [&] {
-        ankerl::nanobench::doNotOptimizeAway(a);
-        a.Lerp(a,b,cFloat);
-        ankerl::nanobench::doNotOptimizeAway(cFloat);
+    bench.run("*_scalar", [&] {
+        mb = ma * e;
+        ankerl::nanobench::doNotOptimizeAway(ma);
         });
 
-    //bench.run("Base_Lerp", [&] {
-    //    ankerl::nanobench::doNotOptimizeAway(ba);
-    //    ba.Lerp(ba, bb, bcFloat);
-    //    ankerl::nanobench::doNotOptimizeAway(bcFloat);
-    //    });
-
+    bench.run("base_*_scalar", [&] {
+        bmb = bma * e;
+        ankerl::nanobench::doNotOptimizeAway(bma);
+        });
     //cDot = a.Dot(b);
     //c = -c;
     //std::cout << c.reg.m128_f32[0] << " " << c.reg.m128_f32[1] << " " << c.reg.m128_f32[2] << " " << c.reg.m128_f32[3] << std::endl;
-    std::cout << cFloat << std::endl;
+    std::cout << mb.row[0].m128_f32[0] << std::endl;
     //std::cout << c.reg.m128_f32[1];
 
     return 0;

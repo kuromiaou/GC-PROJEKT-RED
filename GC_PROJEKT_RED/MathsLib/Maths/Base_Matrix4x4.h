@@ -11,40 +11,40 @@ namespace Base_Maths
     // Row-major storage, column vectors: result = matrix * vector.
     // A * B applies B first. Angles are radians, right-handed rotations.
     template <std::floating_point T = float>
-    class Matrix4x4
+    class BMatrix4x4
     {
     public:
         T values[4][4];
 
-        Matrix4x4(); // Identity.
-        explicit Matrix4x4(const std::array<T, 16>& elements);
-        static Matrix4x4 Identity();
-        static Matrix4x4 Zero();
+        BMatrix4x4(); // Identity.
+        explicit BMatrix4x4(const std::array<T, 16>& elements);
+        static BMatrix4x4 Identity();
+        static BMatrix4x4 Zero();
         T& operator()(std::size_t row, std::size_t column);
         const T& operator()(std::size_t row, std::size_t column) const;
-        Matrix4x4 operator+(const Matrix4x4& rhs) const;
-        Matrix4x4 operator-(const Matrix4x4& rhs) const;
-        Matrix4x4 operator*(const Matrix4x4& rhs) const;
+        BMatrix4x4 operator+(const BMatrix4x4& rhs) const;
+        BMatrix4x4 operator-(const BMatrix4x4& rhs) const;
+        BMatrix4x4 operator*(const BMatrix4x4& rhs) const;
         BVec4<T> operator*(const BVec4<T>& rhs) const;
-        Matrix4x4 operator*(T scalar) const;
-        Matrix4x4& operator*=(const Matrix4x4& rhs);
-        bool operator==(const Matrix4x4& rhs) const;
-        bool operator!=(const Matrix4x4& rhs) const;
-        Matrix4x4 Transpose() const;
+        BMatrix4x4 operator*(T scalar) const;
+        BMatrix4x4& operator*=(const BMatrix4x4& rhs);
+        bool operator==(const BMatrix4x4& rhs) const;
+        bool operator!=(const BMatrix4x4& rhs) const;
+        BMatrix4x4 Transpose() const;
         T Determinant() const;
         // Gauss-Jordan with scaled partial pivoting. Rejects singular/ill-conditioned input.
-        Matrix4x4 Inverse(T relativeTolerance = T{64} * std::numeric_limits<T>::epsilon()) const;
-        static Matrix4x4 Scale(const BVec3<T>& scale);
-        static Matrix4x4 RotationX(T radians);
-        static Matrix4x4 RotationY(T radians);
-        static Matrix4x4 RotationZ(T radians);
-        static Matrix4x4 Translation(const BVec3<T>& offset);
+        BMatrix4x4 Inverse(T relativeTolerance = T{64} * std::numeric_limits<T>::epsilon()) const;
+        static BMatrix4x4 Scale(const BVec3<T>& scale);
+        static BMatrix4x4 RotationX(T radians);
+        static BMatrix4x4 RotationY(T radians);
+        static BMatrix4x4 RotationZ(T radians);
+        static BMatrix4x4 Translation(const BVec3<T>& offset);
         BVec3<T> TransformPoint(const BVec3<T>& point) const; // Affine only, w = 1.
         BVec3<T> TransformDirection(const BVec3<T>& direction) const; // Affine only, w = 0.
     };
 
     template <std::floating_point T>
-    Matrix4x4<T>::Matrix4x4() : values{}
+    BMatrix4x4<T>::BMatrix4x4() : values{}
     {
         for (std::size_t i = 0; i < 4; ++i)
         {
@@ -53,7 +53,7 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T>::Matrix4x4(const std::array<T, 16>& elements) : values{}
+    BMatrix4x4<T>::BMatrix4x4(const std::array<T, 16>& elements) : values{}
     {
         for (std::size_t row = 0; row < 4; ++row)
         {
@@ -65,19 +65,19 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::Identity()
+    BMatrix4x4<T> BMatrix4x4<T>::Identity()
     {
-        return Matrix4x4();
+        return BMatrix4x4();
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::Zero()
+    BMatrix4x4<T> BMatrix4x4<T>::Zero()
     {
-        return Matrix4x4(std::array<T, 16>{});
+        return BMatrix4x4(std::array<T, 16>{});
     }
 
     template <std::floating_point T>
-    T& Matrix4x4<T>::operator()(std::size_t row, std::size_t column)
+    T& BMatrix4x4<T>::operator()(std::size_t row, std::size_t column)
     {
         if (row >= 4 || column >= 4)
         {
@@ -87,7 +87,7 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    const T& Matrix4x4<T>::operator()(std::size_t row, std::size_t column) const
+    const T& BMatrix4x4<T>::operator()(std::size_t row, std::size_t column) const
     {
         if (row >= 4 || column >= 4)
         {
@@ -97,9 +97,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::operator+(const Matrix4x4& rhs) const
+    BMatrix4x4<T> BMatrix4x4<T>::operator+(const BMatrix4x4& rhs) const
     {
-        Matrix4x4 result = Zero();
+        BMatrix4x4 result = Zero();
         for (std::size_t row = 0; row < 4; ++row)
         {
             for (std::size_t column = 0; column < 4; ++column)
@@ -111,9 +111,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::operator-(const Matrix4x4& rhs) const
+    BMatrix4x4<T> BMatrix4x4<T>::operator-(const BMatrix4x4& rhs) const
     {
-        Matrix4x4 result = Zero();
+        BMatrix4x4 result = Zero();
         for (std::size_t row = 0; row < 4; ++row)
         {
             for (std::size_t column = 0; column < 4; ++column)
@@ -125,9 +125,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::operator*(const Matrix4x4& rhs) const
+    BMatrix4x4<T> BMatrix4x4<T>::operator*(const BMatrix4x4& rhs) const
     {
-        Matrix4x4 result = Zero();
+        BMatrix4x4 result = Zero();
         for (std::size_t row = 0; row < 4; ++row)
         {
             for (std::size_t column = 0; column < 4; ++column)
@@ -142,7 +142,7 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    BVec4<T> Matrix4x4<T>::operator*(const BVec4<T>& rhs) const
+    BVec4<T> BMatrix4x4<T>::operator*(const BVec4<T>& rhs) const
     {
         return {
             values[0][0] * rhs.x + values[0][1] * rhs.y + values[0][2] * rhs.z + values[0][3] * rhs.w,
@@ -153,9 +153,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::operator*(T scalar) const
+    BMatrix4x4<T> BMatrix4x4<T>::operator*(T scalar) const
     {
-        Matrix4x4 result = Zero();
+        BMatrix4x4 result = Zero();
         for (std::size_t row = 0; row < 4; ++row)
         {
             for (std::size_t column = 0; column < 4; ++column)
@@ -167,14 +167,14 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T>& Matrix4x4<T>::operator*=(const Matrix4x4& rhs)
+    BMatrix4x4<T>& BMatrix4x4<T>::operator*=(const BMatrix4x4& rhs)
     {
         *this = *this * rhs;
         return *this;
     }
 
     template <std::floating_point T>
-    bool Matrix4x4<T>::operator==(const Matrix4x4& rhs) const
+    bool BMatrix4x4<T>::operator==(const BMatrix4x4& rhs) const
     {
         for (std::size_t row = 0; row < 4; ++row)
         {
@@ -190,15 +190,15 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    bool Matrix4x4<T>::operator!=(const Matrix4x4& rhs) const
+    bool BMatrix4x4<T>::operator!=(const BMatrix4x4& rhs) const
     {
         return !(*this == rhs);
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::Transpose() const
+    BMatrix4x4<T> BMatrix4x4<T>::Transpose() const
     {
-        Matrix4x4 result = Zero();
+        BMatrix4x4 result = Zero();
         for (std::size_t row = 0; row < 4; ++row)
         {
             for (std::size_t column = 0; column < 4; ++column)
@@ -210,9 +210,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    T Matrix4x4<T>::Determinant() const
+    T BMatrix4x4<T>::Determinant() const
     {
-        Matrix4x4 working = *this;
+        BMatrix4x4 working = *this;
         T determinant = T{1};
         for (std::size_t column = 0; column < 4; ++column)
         {
@@ -251,14 +251,14 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::Inverse(T relativeTolerance) const
+    BMatrix4x4<T> BMatrix4x4<T>::Inverse(T relativeTolerance) const
     {
         if (!std::isfinite(relativeTolerance) || relativeTolerance < T{0} || relativeTolerance >= T{1})
         {
             throw std::invalid_argument("Inverse tolerance must be finite and in [0, 1)");
         }
-        Matrix4x4 left = *this;
-        Matrix4x4 right;
+        BMatrix4x4 left = *this;
+        BMatrix4x4 right;
         T scales[4]{};
         for (std::size_t row = 0; row < 4; ++row)
         {
@@ -330,9 +330,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::Scale(const BVec3<T>& scale)
+    BMatrix4x4<T> BMatrix4x4<T>::Scale(const BVec3<T>& scale)
     {
-        Matrix4x4 result;
+        BMatrix4x4 result;
         result.values[0][0] = scale.x;
         result.values[1][1] = scale.y;
         result.values[2][2] = scale.z;
@@ -340,9 +340,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::RotationX(T radians)
+    BMatrix4x4<T> BMatrix4x4<T>::RotationX(T radians)
     {
-        Matrix4x4 result;
+        BMatrix4x4 result;
         const T cosine = std::cos(radians);
         const T sine = std::sin(radians);
         result.values[1][1] = cosine;
@@ -353,9 +353,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::RotationY(T radians)
+    BMatrix4x4<T> BMatrix4x4<T>::RotationY(T radians)
     {
-        Matrix4x4 result;
+        BMatrix4x4 result;
         const T cosine = std::cos(radians);
         const T sine = std::sin(radians);
         result.values[2][2] = cosine;
@@ -366,9 +366,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::RotationZ(T radians)
+    BMatrix4x4<T> BMatrix4x4<T>::RotationZ(T radians)
     {
-        Matrix4x4 result;
+        BMatrix4x4 result;
         const T cosine = std::cos(radians);
         const T sine = std::sin(radians);
         result.values[0][0] = cosine;
@@ -379,9 +379,9 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    Matrix4x4<T> Matrix4x4<T>::Translation(const BVec3<T>& offset)
+    BMatrix4x4<T> BMatrix4x4<T>::Translation(const BVec3<T>& offset)
     {
-        Matrix4x4 result;
+        BMatrix4x4 result;
         result.values[0][3] = offset.x;
         result.values[1][3] = offset.y;
         result.values[2][3] = offset.z;
@@ -389,7 +389,7 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    BVec3<T> Matrix4x4<T>::TransformPoint(const BVec3<T>& point) const
+    BVec3<T> BMatrix4x4<T>::TransformPoint(const BVec3<T>& point) const
     {
         if (values[3][0] != T{0} || values[3][1] != T{0} ||
             values[3][2] != T{0} || values[3][3] != T{1})
@@ -401,7 +401,7 @@ namespace Base_Maths
     }
 
     template <std::floating_point T>
-    BVec3<T> Matrix4x4<T>::TransformDirection(const BVec3<T>& direction) const
+    BVec3<T> BMatrix4x4<T>::TransformDirection(const BVec3<T>& direction) const
     {
         if (values[3][0] != T{0} || values[3][1] != T{0} ||
             values[3][2] != T{0} || values[3][3] != T{1})

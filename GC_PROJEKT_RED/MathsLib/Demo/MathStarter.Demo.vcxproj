@@ -85,6 +85,8 @@
     <ClInclude Include="..\Maths\Base_Matrix4x4.h" />
     <ClInclude Include="..\Maths\Base_Vec3.h" />
     <ClInclude Include="..\Maths\Base_Vec4.h" />
+    <ClInclude Include="..\Maths\Matrix3x3.h" />
+    <ClInclude Include="..\Maths\Matrix4x4.h" />
     <ClInclude Include="..\Maths\Vec3d.h" />
     <ClInclude Include="..\Maths\Vec3f.h" />
     <ClInclude Include="..\Maths\Vec4f.h" />
