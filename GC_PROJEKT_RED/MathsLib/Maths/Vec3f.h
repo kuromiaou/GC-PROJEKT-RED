@@ -52,8 +52,8 @@ namespace Maths
         inline float Distance(const Vec3f& rhs) const;
         inline float Angle(const Vec3f& rhs) const;
 
-        template <std::floating_point T = float>
-        inline static Vec3f Lerp(const Vec3f& a, const Vec3f& b, T t);
+        //template <std::floating_point T = float>
+        inline static Vec3f Lerp(const Vec3f& a, const Vec3f& b, float t);
         inline static Vec3f Min(const Vec3f& a, const Vec3f& b);
         inline static Vec3f Max(const Vec3f& a, const Vec3f& b);
         
@@ -201,11 +201,11 @@ namespace Maths
         return std::acos(std::clamp(cosi, -1.f, 1.f));
     }
 
-    template <std::floating_point T>
-    Vec3f Vec3f::Lerp(const Vec3f& a, const Vec3f& b, T t)
+    //template <std::floating_point T>
+    Vec3f Vec3f::Lerp(const Vec3f& a, const Vec3f& b, float t)
     {
         __m128 result = _mm_sub_ps(b.reg, a.reg);
-        result = _mm_mul_ps(result, _mm_set1_ps(static_cast<float>(t)));
+        result = _mm_mul_ps(result, _mm_set1_ps(t));
         result = _mm_add_ps(a.reg, result);
         return result;
     }

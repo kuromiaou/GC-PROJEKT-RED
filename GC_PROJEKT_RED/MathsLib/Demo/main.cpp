@@ -43,8 +43,8 @@ int main(/*const int _argc, char** _argv*/)
     Vec4f c{ 3,0,4,0 };
     BVec4<float> bc{ 3,0,4,0 };
 
-    float cFloat = 0.f;
-    float bcFloat = 0.f;
+    float cFloat = 2.f;
+    //float bcFloat = 0.f;
 
     //std::cout << "-------- Floats --------" << std::endl;
     //std::cout << c.w << std::endl;
@@ -58,17 +58,17 @@ int main(/*const int _argc, char** _argv*/)
     ankerl::nanobench::Bench bench;
     bench.epochs(2000);
 
-    bench.run("Angle", [&] {
+    bench.run("Lerp", [&] {
         ankerl::nanobench::doNotOptimizeAway(a);
-        cFloat = a.Angle(b);
+        a.Lerp(a,b,cFloat);
         ankerl::nanobench::doNotOptimizeAway(cFloat);
         });
 
-    bench.run("Base_Angle", [&] {
-        ankerl::nanobench::doNotOptimizeAway(ba);
-        bcFloat = ba.Angle(bb);
-        ankerl::nanobench::doNotOptimizeAway(bcFloat);
-        });
+    //bench.run("Base_Lerp", [&] {
+    //    ankerl::nanobench::doNotOptimizeAway(ba);
+    //    ba.Lerp(ba, bb, bcFloat);
+    //    ankerl::nanobench::doNotOptimizeAway(bcFloat);
+    //    });
 
     //cDot = a.Dot(b);
     //c = -c;

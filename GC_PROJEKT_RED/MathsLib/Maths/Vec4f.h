@@ -78,8 +78,8 @@ namespace Maths
         inline float Distance(const Vec4f& rhs) const;
         inline float Angle(const Vec4f& rhs) const;
 
-        template <std::floating_point T = float>
-        inline static Vec4f Lerp(const Vec4f& a, const Vec4f& b, T t);
+        //template <std::floating_point T = float>
+        inline static Vec4f Lerp(const Vec4f& a, const Vec4f& b, float t);
         inline static Vec4f Min(const Vec4f& a, const Vec4f& b);
         inline static Vec4f Max(const Vec4f& a, const Vec4f& b);
         
@@ -120,7 +120,7 @@ namespace Maths
 
     inline Vec4f Vec4f::operator-() const
     {
-        //__m128 e = _mm_set_ss(-0.0f);
+  //      __m128 e = _mm_set_ss(-0.0f);
 		//return _mm_xor_ps(reg, _mm_shuffle_ps(e, e, 0x00));
 		return _mm_xor_ps(reg, _mm_set1_ps(-0.0f));     //benchmark to operator to see the difference.
     } 
@@ -180,27 +180,25 @@ namespace Maths
 
     inline bool Vec4f::operator==(const Vec4f& rhs) const
     {
-        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));
-        
+        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) == 0xF));        
     }
 
     inline bool Vec4f::operator!=(const Vec4f& rhs) const
     {
-        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) != 0xF));
-        
+        return ((_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) != 0xF));        
     }
     
 
     inline float Vec4f::DotDP(const Vec4f& rhs) const
     {
-        return _mm_cvtss_f32(_mm_dp_ps(reg, rhs.reg, 0xF1));
-    }
+        return _mm_cvtss_f32(_mm_dp_ps(reg, rhs.reg, 0xF1)); // 0xF1 = 1111 0001 --- 1111 means we multiply 4 values of reg and rhs.reg
+    }                                                        //                  --- 0001 means we put the result only in x;
 
     inline float Vec4f::DotManual(const Vec4f& rhs) const
     {
-        __m128 m = _mm_mul_ps(reg, rhs.reg);
-        __m128 s = _mm_add_ps(m, _mm_movehl_ps(m, m));
-        s = _mm_add_ss(s, _mm_shuffle_ps(s, s, 1));
+        __m128 m = _mm_mul_ps(reg, rhs.reg);            // {1,2,3,4} * {5,6,7,8}  m = {5,12,21,32}
+        __m128 s = _mm_add_ps(m, _mm_movehl_ps(m, m));  // {21, 32 , 21 , 32} s = {26, 44, 42, 64}
+        s = _mm_add_ss(s, _mm_shuffle_ps(s, s, 1));     // {26, 44, 42, 64} s = {70 , 0 , 0 , 0} 
         return _mm_cvtss_f32(s);
     }
 
@@ -244,11 +242,11 @@ namespace Maths
         return std::acos(std::clamp(cosi, -1.f, 1.f));
     }
 
-    template <std::floating_point T>
-    inline Vec4f Vec4f::Lerp(const Vec4f& a, const Vec4f& b, T t)
+    //template <std::floating_point T>
+    inline Vec4f Vec4f::Lerp(const Vec4f& a, const Vec4f& b, float t)
     {
-        __m128 result = _mm_sub_ps( b.reg, a.reg);
-        result = _mm_mul_ps(result, _mm_set1_ps(static_cast<float>(t)));
+        __m128 result = _mm_sub_ps( b.reg, a.reg );
+        result = _mm_mul_ps(result, _mm_set1_ps(t));
         result = _mm_add_ps(a.reg, result);
         return result;
     }
@@ -280,6 +278,5 @@ namespace Maths
     inline const Vec4f Vec4f::UnitZ{0, 0, 1, 0};
 
     inline const Vec4f Vec4f::UnitW{0, 0, 0, 1};
-
 
 }
