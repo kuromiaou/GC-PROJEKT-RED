@@ -1,7 +1,5 @@
-//#include "Benchmark/Benchmark.h"
-//#include "Maths/Matrix3x3.h"
-//#include "Maths/Matrix4x4.h"
-//#include "Maths/Vec3f.h"
+#include "Benchmark/Benchmark.h"
+#include "Platform/CpuFeatures.h"
 #include "Maths/Vec4f.h"
 #include "Maths/Vec4d.h"
 #include "Maths/Vec3f.h"
@@ -12,7 +10,6 @@
 #include "Maths/Matrix4x4.h"
 #include "Maths/Base_Vec3.h"
 #include "Maths/Base_Vec4.h"
-//#include "Platform/CpuFeatures.h"
 
 #include <immintrin.h>
 #include <cstdlib>
@@ -31,7 +28,7 @@
 //#include <thread>
 int main(/*const int _argc, char** _argv*/)
 {
-    //    using Maths::Vec3;
+    using Maths::Vec3f;
     using Maths::Vec4f;
     using Maths::Matrix4x4;
     using Base_Maths::BMatrix4x4;
@@ -50,7 +47,7 @@ int main(/*const int _argc, char** _argv*/)
     Vec4f c{ 3,0,4,0 };
     BVec4<float> bc{ 3,0,4,0 };
 
-    float e = 10.f;
+    //float e = 10.f;
 
     //double d = 1;
     //float cFloat = 0.f;
@@ -69,13 +66,13 @@ int main(/*const int _argc, char** _argv*/)
     bench.epochs(2000);
 
     bench.run("*_scalar", [&] {
-        mb = ma * e;
-        ankerl::nanobench::doNotOptimizeAway(ma);
+        mb = mb.Zero();
+        ankerl::nanobench::doNotOptimizeAway(mb);
         });
 
     bench.run("base_*_scalar", [&] {
-        bmb = bma * e;
-        ankerl::nanobench::doNotOptimizeAway(bma);
+        mb = mb.ZeroSIMD();
+        ankerl::nanobench::doNotOptimizeAway(mb);
         });
     //cDot = a.Dot(b);
     //c = -c;
@@ -83,7 +80,7 @@ int main(/*const int _argc, char** _argv*/)
     std::cout << mb.row[0].m128_f32[0] << std::endl;
     //std::cout << c.reg.m128_f32[1];
 
-    return 0;
+    return 67;
 }
 
 

@@ -20,18 +20,25 @@ namespace Maths
         /// </summary>
         __m128 row[4];
 
-        Matrix4x4(); // Identity. 
-        explicit Matrix4x4(const std::array<float, 16>& elements);
-        static Matrix4x4 Identity();
-        static Matrix4x4 Zero();
+        inline Matrix4x4(); // Identity. 
+        inline explicit Matrix4x4(const std::array<float, 16>& elements);
+        inline Matrix4x4(__m128 row0, __m128 row1, __m128 row2, __m128 row3);
+
+        inline static Matrix4x4 Identity();
+        inline static Matrix4x4 Zero();
+        /// <summary>
+        /// Other version of Zero(), was used to benchmark; results are equivalent.
+        /// </summary>
+        /// <returns></returns>
+        inline static Matrix4x4 ZeroSIMD();
         //We decided to remove these 2 functions, as they would decrease the number or op / s way to much
         //float& operator()(std::size_t row, std::size_t column);                
         //const float& operator()(std::size_t row, std::size_t column) const;
-        Matrix4x4 operator+(const Matrix4x4& rhs) const;
-        Matrix4x4 operator-(const Matrix4x4& rhs) const;
-        //Matrix4x4 operator*(const Matrix4x4& rhs) const;
-        //Vec4f operator*(const Vec4f& rhs) const;
-        Matrix4x4 operator*(float scalar) const;
+        inline Matrix4x4 operator+(const Matrix4x4& rhs) const;
+        inline Matrix4x4 operator-(const Matrix4x4& rhs) const;
+        //inline Matrix4x4 operator*(const Matrix4x4& rhs) const;
+        Vec4f operator*(const Vec4f& rhs) const;
+        inline Matrix4x4 operator*(float scalar) const;
         //Matrix4x4& operator*=(const Matrix4x4& rhs);
         //bool operator==(const Matrix4x4& rhs) const;
         //bool operator!=(const Matrix4x4& rhs) const;
@@ -48,16 +55,16 @@ namespace Maths
         //Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
     };
 
-    Matrix4x4::Matrix4x4() : row()
+    inline Matrix4x4::Matrix4x4() : row()
     {
-        row[0] = _mm_setr_ps(1,0,0,0); // w = 1;
-        row[1] = _mm_setr_ps(0,1,0,0); // z = 1;
-        row[2] = _mm_setr_ps(0,0,1,0); // y = 1;
-        row[3] = _mm_setr_ps(0,0,0,1); // x = 1;
+        row[0] = _mm_setr_ps(1,0,0,0); // x = 1;
+        row[1] = _mm_setr_ps(0,1,0,0); // y = 1;
+        row[2] = _mm_setr_ps(0,0,1,0); // z = 1;
+        row[3] = _mm_setr_ps(0,0,0,1); // w = 1;
 
     }
 
-    Matrix4x4::Matrix4x4(const std::array<float, 16>& elements) : row()
+    inline Matrix4x4::Matrix4x4(const std::array<float, 16>& elements) : row()
     {
         row[0] = _mm_setr_ps(elements[0], elements[1], elements[2], elements[3]);
         row[1] = _mm_setr_ps(elements[4], elements[5], elements[6], elements[7]);
@@ -65,14 +72,30 @@ namespace Maths
         row[3] = _mm_setr_ps(elements[12], elements[13], elements[14], elements[15]);
     }
 
-    Matrix4x4 Matrix4x4::Identity()
+    inline Matrix4x4::Matrix4x4(__m128 row0, __m128 row1, __m128 row2, __m128 row3) {
+        row[0] = row0;
+        row[1] = row1;
+        row[2] = row2;
+        row[3] = row3;
+    }
+
+    inline Matrix4x4 Matrix4x4::Identity()
     {
         return Matrix4x4();
     }
 
-    Matrix4x4 Matrix4x4::Zero()
+    inline Matrix4x4 Matrix4x4::Zero()
     {
         return Matrix4x4(std::array<float, 16>{});
+    }
+    inline Matrix4x4 Matrix4x4::ZeroSIMD()
+    {
+        return Matrix4x4(
+            _mm_setzero_ps(),
+            _mm_setzero_ps(),
+            _mm_setzero_ps(),
+            _mm_setzero_ps()
+        );
     }
 
     Matrix4x4 Matrix4x4::operator+(const Matrix4x4& rhs) const
@@ -97,38 +120,31 @@ namespace Maths
         return result;
     }
 
-    //template <std::floating_point T>
-    //Matrix4x4<T> Matrix4x4<T>::operator*(const Matrix4x4& rhs) const
+    //Matrix4x4 Matrix4x4::operator*(const Matrix4x4& rhs) const
     //{
     //    Matrix4x4 result = Zero();
-    //    for (std::size_t row = 0; row < 4; ++row)
-    //    {
-    //        for (std::size_t column = 0; column < 4; ++column)
-    //        {
-    //            for (std::size_t k = 0; k < 4; ++k)
-    //            {
-    //                result.values[row][column] += values[row][k] * rhs.values[k][column];
-    //            }
-    //        }
-    //    }
+    //    //result.row[0] = (row[0].m128_f32[0]*rhs.row[0].m128_f32[0], 0, 0, 0);
+    //    
     //    return result;
     //}
 
-    //template <std::floating_point T>
-    //Vec4f Matrix4x4<T>::operator*(const Vec4f& rhs) const
-    //{
-    //    return {
-    //    };
-    //}
+    inline Vec4f Matrix4x4::operator*(const Vec4f& v) const
+    {
+        const __m128 t0 = _mm_mul_ps(row[0], v.reg);
+        const __m128 t1 = _mm_mul_ps(row[1], v.reg);
+        const __m128 t2 = _mm_mul_ps(row[2], v.reg);
+        const __m128 t3 = _mm_mul_ps(row[3], v.reg);
+        return _mm_hadd_ps(_mm_hadd_ps(t0, t1), _mm_hadd_ps(t2, t3));
+    }
 
     Matrix4x4 Matrix4x4::operator*(float scalar) const
     {
         Matrix4x4 result = Zero();
 
-        result.row[0] = _mm_mul_ps(row[0], _mm_set1_ps(static_cast<float>(scalar)));
-        result.row[1] = _mm_mul_ps(row[1], _mm_set1_ps(static_cast<float>(scalar)));
-        result.row[2] = _mm_mul_ps(row[2], _mm_set1_ps(static_cast<float>(scalar)));
-        result.row[3] = _mm_mul_ps(row[3], _mm_set1_ps(static_cast<float>(scalar)));
+        result.row[0] = _mm_mul_ps(row[0], _mm_set1_ps(scalar));
+        result.row[1] = _mm_mul_ps(row[1], _mm_set1_ps(scalar));
+        result.row[2] = _mm_mul_ps(row[2], _mm_set1_ps(scalar));
+        result.row[3] = _mm_mul_ps(row[3], _mm_set1_ps(scalar));
 
         return result;
     }

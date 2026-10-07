@@ -28,18 +28,14 @@ namespace Maths
         inline Vec3f operator/(const Vec3f& rhs) const;
         inline Vec3f operator-() const;
 
-        template <std::floating_point T = float>
-        inline Vec3f operator*(T scalar) const;
-        template <std::floating_point T = float>
-        inline Vec3f operator/(T scalar) const;
+        inline Vec3f operator*(float scalar) const;
+        inline Vec3f operator/(float scalar) const;
         inline Vec3f& operator+=(const Vec3f& rhs);
         inline Vec3f& operator-=(const Vec3f& rhs);
         inline Vec3f& operator*=(const Vec3f& rhs);
         inline Vec3f& operator/=(const Vec3f& rhs);
-        template <std::floating_point T = float>
-        inline Vec3f& operator*=(T scalar);
-        template <std::floating_point T = float>
-        inline Vec3f& operator/=(T scalar);
+        inline Vec3f& operator*=(float scalar);
+        inline Vec3f& operator/=(float scalar);
         inline bool operator==(const Vec3f& rhs) const;
         inline bool operator!=(const Vec3f& rhs) const;
         
@@ -64,7 +60,7 @@ namespace Maths
         static const Vec3f UnitY;
         static const Vec3f UnitZ;
     };
-
+     
 
     inline Vec3f Vec3f::operator+(const Vec3f& rhs) const
     {
@@ -88,7 +84,8 @@ namespace Maths
     inline Vec3f Vec3f::operator/(const Vec3f& rhs) const
     {
         assert(rhs.reg.m128_f32[0] != 0.f and rhs.reg.m128_f32[1] != 0.f and rhs.reg.m128_f32[2] != 0.f);
-        return _mm_div_ps(reg, rhs.reg);
+        const __m128 d = _mm_blend_ps(rhs.reg, _mm_set1_ps(1.f), 0x8);
+        return _mm_div_ps(reg, d);
     }
 
     inline Vec3f Vec3f::operator-() const
@@ -98,14 +95,12 @@ namespace Maths
         return _mm_xor_ps(reg, _mm_set1_ps(-0.0f));
     }
 
-    template <std::floating_point T>
-    inline Vec3f Vec3f::operator*(T scalar) const
+    inline Vec3f Vec3f::operator*(float scalar) const
     {
         return _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
     }
 
-    template <std::floating_point T>
-    inline Vec3f Vec3f::operator/(T scalar) const
+    inline Vec3f Vec3f::operator/(float scalar) const
     {
         assert(scalar != 0.f);
         return _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
@@ -136,15 +131,13 @@ namespace Maths
         return *this;
     }
 
-    template <std::floating_point T>
-    inline Vec3f& Vec3f::operator*=(T scalar)
+    inline Vec3f& Vec3f::operator*=(float scalar)
     {
         reg = _mm_mul_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
         return *this;
     }
 
-    template <std::floating_point T>
-    inline Vec3f& Vec3f::operator/=(T scalar)
+    inline Vec3f& Vec3f::operator/=(float scalar)
     {
         assert(scalar != 0.f);
         reg = _mm_div_ps(reg, _mm_set1_ps(static_cast<float>(scalar)));
@@ -201,7 +194,6 @@ namespace Maths
         return std::acos(std::clamp(cosi, -1.f, 1.f));
     }
 
-    //template <std::floating_point T>
     Vec3f Vec3f::Lerp(const Vec3f& a, const Vec3f& b, float t)
     {
         __m128 result = _mm_sub_ps(b.reg, a.reg);
@@ -219,8 +211,7 @@ namespace Maths
     {
         return _mm_max_ps(a.reg, b.reg);
     }
-    template <std::floating_point T>
-    Vec3f operator*(T scalar, const Vec3f& vector)
+    Vec3f operator*(float scalar, const Vec3f& vector)
     {
         return _mm_mul_ps(_mm_set1_ps(static_cast<float>(scalar)), vector.reg);
     }
