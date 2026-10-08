@@ -27,33 +27,32 @@ namespace Maths
 
         inline static Matrix4x4 Identity();
         inline static Matrix4x4 Zero();
-        /// <summary>
         /// Other version of Zero(), was used to benchmark; results are equivalent.
-        /// </summary>
-        /// <returns></returns>
         inline static Matrix4x4 ZeroSIMD();
+        
         //We decided to remove these 2 functions, as they would decrease the number or op / s way to much
         //float& operator()(std::size_t row, std::size_t column);                
         //const float& operator()(std::size_t row, std::size_t column) const;
+
         inline Matrix4x4 operator+(const Matrix4x4& rhs) const;
         inline Matrix4x4 operator-(const Matrix4x4& rhs) const;
-        //inline Matrix4x4 operator*(const Matrix4x4& rhs) const;
+        inline Matrix4x4 operator*(const Matrix4x4& rhs) const;
         Vec4f operator*(const Vec4f& rhs) const;
         inline Matrix4x4 operator*(float scalar) const;
-        //Matrix4x4& operator*=(const Matrix4x4& rhs);
-        //bool operator==(const Matrix4x4& rhs) const;
-        //bool operator!=(const Matrix4x4& rhs) const;
-        //Matrix4x4 Transpose() const;
-        //float Determinant() const;
-        //// Gauss-Jordan with scaled partial pivoting. Rejects singular/ill-conditioned input.
-        //Matrix4x4 Inverse(float relativeTolerance = float{64} * std::numeric_limits<float>::epsilon()) const;
-        //static Matrix4x4 Scale(const Vec3f& scale);
-        //static Matrix4x4 RotationX(float radians);
-        //static Matrix4x4 RotationY(float radians);
-        //static Matrix4x4 RotationZ(float radians);
-        //static Matrix4x4 Translation(const Vec3f& offset);
-        //Vec3f TransformPoint(const Vec3f& point) const; // Affine only, w = 1.
-        //Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
+        Matrix4x4& operator*=(const Matrix4x4& rhs);
+        bool operator==(const Matrix4x4& rhs) const;
+        bool operator!=(const Matrix4x4& rhs) const;
+        Matrix4x4 Transpose() const;
+        float Determinant() const;
+        // Gauss-Jordan with scaled partial pivoting. Rejects singular/ill-conditioned input.
+        Matrix4x4 Inverse(float relativeTolerance = float{64} * std::numeric_limits<float>::epsilon()) const;
+        static Matrix4x4 Scale(const Vec3f& scale);
+        static Matrix4x4 RotationX(float radians);
+        static Matrix4x4 RotationY(float radians);
+        static Matrix4x4 RotationZ(float radians);
+        static Matrix4x4 Translation(const Vec3f& offset);
+        Vec3f TransformPoint(const Vec3f& point) const; // Affine only, w = 1.
+        Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
     };
 
     inline Matrix4x4::Matrix4x4() : row()
