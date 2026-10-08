@@ -10,7 +10,12 @@ AVX2 usable: true
 
 FMA usable: true
 
-Seed: 12345, vectors per batch: 100 / 1 000 / 250 000 / 1 000 000
+Seed: 12345, vectors_per_batch: 100 / 1 000 / 250 000 / 1 000 000
+
+Epochs: 100
+Warmup: 10
+Batch : vectors_per_batch
+
 
 Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
 
