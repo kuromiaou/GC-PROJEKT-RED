@@ -147,68 +147,47 @@ int main(const int _argc, char** _argv)
 
     ankerl::nanobench::Bench bench;
     bench.epochs(100);
-	bench.warmup(10);
-	bench.batch(count);
+    bench.warmup(10);
+    bench.batch(count);
+
+    std::vector<float> dotOut(count);
 
     bench.run("Normalize", [&] {
         for (std::size_t i = 0; i < count; ++i)
-        {
-            double checksum = 0;
             outputSIMD[i] = vecsSIMD[i].Normalize();
-            checksum += static_cast<double>(outputSIMD[i].reg.m128_f32[0]) + outputSIMD[i].reg.m128_f32[1] + outputSIMD[i].reg.m128_f32[2] + outputSIMD[i].reg.m128_f32[3];
-            ankerl::nanobench::doNotOptimizeAway(checksum);
-        }
+        ankerl::nanobench::doNotOptimizeAway(outputSIMD.data());
         });
 
     bench.run("CPP_Normalize", [&] {
         for (std::size_t i = 0; i < count; ++i)
-        {
-            double checksum = 0;
             outputCPP[i] = vecsCPP[i].Normalize();
-			checksum += static_cast<double>(outputCPP[i].x) + outputCPP[i].y + outputCPP[i].z + outputCPP[i].w;
-            ankerl::nanobench::doNotOptimizeAway(checksum);
-        }
+        ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
         });
-    std::vector<float> dotOut(count);
+
     bench.run("Dot", [&] {
         for (std::size_t i = 0; i < count; ++i)
-        {
-            double checksum = 0;
             dotOut[i] = vecsSIMD[i].Dot(vecsSIMD[i]);
-            checksum += static_cast<double>(dotOut[i]);
-            ankerl::nanobench::doNotOptimizeAway(dotOut.data());
-        }
+        ankerl::nanobench::doNotOptimizeAway(dotOut.data());
         });
 
     bench.run("CPP_Dot", [&] {
         for (std::size_t i = 0; i < count; ++i)
-        {
-            double checksum = 0;
             dotOut[i] = vecsCPP[i].Dot(vecsCPP[i]);
-            checksum += static_cast<double>(dotOut[i]);
-            ankerl::nanobench::doNotOptimizeAway(dotOut.data());
-        }
+        ankerl::nanobench::doNotOptimizeAway(dotOut.data());
         });
 
     bench.run("Mat4x4 * Vec4f", [&] {
         for (std::size_t i = 0; i < count; ++i)
-        {
-            double checksum = 0;
-            outputSIMD[i] = Mat4x4SIMD[i]*vecsSIMD[i];
-            checksum += static_cast<double>(outputSIMD[i].reg.m128_f32[0]) + outputSIMD[i].reg.m128_f32[1] + outputSIMD[i].reg.m128_f32[2] + outputSIMD[i].reg.m128_f32[3];
-            ankerl::nanobench::doNotOptimizeAway(checksum);
-        }
+            outputSIMD[i] = Mat4x4SIMD[i] * vecsSIMD[i];
+        ankerl::nanobench::doNotOptimizeAway(outputSIMD.data());
         });
 
     bench.run("CPP_Mat4x4 * Vec4f", [&] {
         for (std::size_t i = 0; i < count; ++i)
-        {
-            double checksum = 0;
-            outputCPP[i] = Mat4x4CPP[i]*vecsCPP[i];
-			checksum += static_cast<double>(outputCPP[i].x) + outputCPP[i].y + outputCPP[i].z + outputCPP[i].w;
-            ankerl::nanobench::doNotOptimizeAway(checksum);
-        }
-        });
+            outputCPP[i] = Mat4x4CPP[i] * vecsCPP[i];
+        ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
+        });    
+	
 
     return 0;
 }
