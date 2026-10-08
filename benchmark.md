@@ -29,14 +29,14 @@ Seed: 12345, vectors per batch: 1000
 Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
 Observable checksum: 69.522
 
-Benchmark             |Median ns/op         | Min     | Max Spread | %
-|--------------------:|--------------------:|--------:|-----------:|:----------
-Normalize                  1.76                 1.63            2.05     23.9
-CPP_Normalize             1.735                 1.71            1.8      5.2
-Dot                        0.81                 0.8             0.82      2.5
-CPP_Dot                    0.49                 0.49            0.55     12.2
-Mat4x4 * Vec4f            1.385                 1.37            1.43      4.3
-CPP_Mat4x4 * Vec4f         2.93                 2.9             3      3.4
+|           benchmark |               ns/op |     Min |       Max 
+|--------------------:|--------------------:|--------:|-----------
+|         `Normalize` |               1.76  |    1.63 |      2.05   
+|     `CPP_Normalize` |               1.735 |    1.71 |      1.8  
+|               `Dot` |               0.81  |     0.8 |      0.82
+|           `CPP_Dot` |               0.49  |    0.49 |      0.55  
+|    `Mat4x4 * Vec4f` |               1.385 |    1.37 |      1.43 
+| `CPP_Mat4x4 * Vec4f`|               2.93  |    2.9  |      3
 
 Ratio = reference time / SIMD time (>1 means SIMD faster)
 
@@ -47,14 +47,7 @@ Dot                     0.6  0.6 0.69 SIMD slower in every run               1 0
 Mat4x4 * Vec4f         2.12 2.05 2.16 SIMD faster in every run               1 000
 
 
-|               ns/op |                op/s |    err% |     total | benchmark
-|--------------------:|--------------------:|--------:|----------:|:----------
-|                2.05 |      488,607,993.13 |    1.0% |      0.12 | `Normalize`
-|                1.71 |      586,133,929.17 |    0.4% |      0.11 | `CPP_Normalize`
-|                0.80 |    1,253,741,987.34 |    0.5% |      0.11 | `Dot`
-|                0.49 |    2,040,163,610.25 |    0.7% |      0.11 | `CPP_Dot`
-|                1.43 |      700,813,665.39 |    0.8% |      0.11 | `Mat4x4 * Vec4f`
-|                2.93 |      341,403,559.18 |    0.7% |      0.11 | `CPP_Mat4x4 * Vec4f`
+
 -------------------------------------------------------------------------------------
 
 Benchmark          Median ns/op  Min  Max Spread %
