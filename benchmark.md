@@ -29,14 +29,14 @@ Seed: 12345, vectors per batch: 1000
 Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
 Observable checksum: 69.522
 
-Benchmark          |Median ns/op | Min | Max Spread | %
-|--------------------:|--------------------:|--------:|----------:|:----------
-Normalize                  1.76 1.63 2.05     23.9
-CPP_Normalize             1.735 1.71  1.8      5.2
-Dot                        0.81  0.8 0.82      2.5
-CPP_Dot                    0.49 0.49 0.55     12.2
-Mat4x4 * Vec4f            1.385 1.37 1.43      4.3
-CPP_Mat4x4 * Vec4f         2.93  2.9    3      3.4
+Benchmark             |Median ns/op         | Min     | Max Spread | %
+|--------------------:|--------------------:|--------:|-----------:|:----------
+Normalize                  1.76                 1.63            2.05     23.9
+CPP_Normalize             1.735                 1.71            1.8      5.2
+Dot                        0.81                 0.8             0.82      2.5
+CPP_Dot                    0.49                 0.49            0.55     12.2
+Mat4x4 * Vec4f            1.385                 1.37            1.43      4.3
+CPP_Mat4x4 * Vec4f         2.93                 2.9             3      3.4
 
 Ratio = reference time / SIMD time (>1 means SIMD faster)
 
