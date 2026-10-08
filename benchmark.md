@@ -25,11 +25,6 @@ ns per vector (nanobench batch = vectors per batch), 10 runs, seed 12345
 
 Ratio = reference time / SIMD time (>1 means SIMD faster)
 
-Treatment      Median ratio  Min  Max Verdict                                Count
----------      ------------  ---  --- -------                                -----
-Normalize              0.97 0.86 1.21 ratio crosses 1.0: no clear difference 100  
-Dot                    0.61 0.45 0.67 SIMD slower in every run               100  
-Mat4x4 * Vec4f         2.15 2.11 2.56 SIMD faster in every run               100
 
 |           Treatment |               Ratio |     Min |       Max |    Verdict  |     Count
 |--------------------:|--------------------:|--------:|----------:|------------:|-----------
@@ -57,7 +52,7 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 |    `Mat4x4 * Vec4f` |               2.12  |    2.05 |      2.16 | SIMD faster |     1 000
 
 
-##-------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
@@ -77,23 +72,6 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 |    `Mat4x4 * Vec4f` |               1.45  |    1.21 |      1.78 | SIMD faster |   250 000
 
 -------------------------------------------------------------------------------------
-
-Benchmark          Median ns/op  Min  Max Spread %
----------          ------------  ---  --- --------
-Normalize                  2.03  1.7 2.03     16.3
-CPP_Normalize              1.77 1.76 1.79      1.7
-Dot                        0.82 0.81 0.86      6.1
-CPP_Dot                    0.53 0.52 0.77     47.2
-Mat4x4 * Vec4f             3.48 3.43 3.56      3.7
-CPP_Mat4x4 * Vec4f         4.21 4.13 4.46      7.8
-
-Ratio = reference time / SIMD time (>1 means SIMD faster)
-
-Treatment      Median ratio  Min  Max Verdict                                Count    
----------      ------------  ---  --- -------                                -----    
-Normalize              0.87 0.87 1.05 ratio crosses 1.0: no clear difference 1 000 000
-Dot                    0.65  0.6 0.94 SIMD slower in every run               1 000 000
-Mat4x4 * Vec4f          1.2 1.19 1.28 SIMD faster in every run               1 000 000
 
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
