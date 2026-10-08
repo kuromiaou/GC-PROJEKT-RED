@@ -1,5 +1,15 @@
 Results can be found in "GC-PROJEKT-RED\GC_PROJEKT_RED\MathsLib\results"
 
+Dot: 32
+CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
+SSE usable: true
+AVX2 usable: true
+FMA usable: true
+Seed: 12345, vectors per batch: 1000
+Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
+Observable checksum: 69.522
+
+
 ns per vector (nanobench batch = vectors per batch), 10 runs, seed 12345
 
 Benchmark          Median ns/op  Min  Max Spread %
@@ -20,14 +30,7 @@ Dot                    0.61 0.45 0.67 SIMD slower in every run               100
 Mat4x4 * Vec4f         2.15 2.11 2.56 SIMD faster in every run               100
 
 -------------------------------------------------------------------------------------
-Dot: 32
-CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
-SSE usable: true
-AVX2 usable: true
-FMA usable: true
-Seed: 12345, vectors per batch: 1000
-Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
-Observable checksum: 69.522
+
 
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
@@ -36,19 +39,18 @@ Observable checksum: 69.522
 |               `Dot` |               0.81  |     0.8 |      0.82
 |           `CPP_Dot` |               0.49  |    0.49 |      0.55  
 |    `Mat4x4 * Vec4f` |               1.385 |    1.37 |      1.43 
-| `CPP_Mat4x4 * Vec4f`|               2.93  |    2.9  |      3
+|`CPP_Mat4x4 * Vec4f` |               2.93  |    2.9  |      3
 
 Ratio = reference time / SIMD time (>1 means SIMD faster)
 
-Treatment      Median ratio  Min  Max Verdict                                Count
----------      ------------  ---  --- -------                                -----
-Normalize                 1 0.83 1.09 ratio crosses 1.0: no clear difference 1 000
-Dot                     0.6  0.6 0.69 SIMD slower in every run               1 000
-Mat4x4 * Vec4f         2.12 2.05 2.16 SIMD faster in every run               1 000
+|           Treatment |               Ratio |     Min |       Max |    Verdict  |     Count
+|--------------------:|--------------------:|--------:|----------:|------------:|-----------
+|         `Normalize` |               1.76  |    1.63 |      2.05 |No clear diff|     1 000
+|               `Dot` |               1.735 |    1.71 |      1.8  | SIMD slower |     1 000
+|    `Mat4x4 * Vec4f` |               0.81  |     0.8 |      0.82 | SIMD faster |     1 000
 
 
-
--------------------------------------------------------------------------------------
+##-------------------------------------------------------------------------------------
 
 Benchmark          Median ns/op  Min  Max Spread %
 ---------          ------------  ---  --- --------
