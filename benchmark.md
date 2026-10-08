@@ -1,4 +1,4 @@
-Results can be found in "GC-PROJEKT-RED\GC_PROJEKT_RED\MathsLib\results"
+# Results can be found in "GC-PROJEKT-RED\GC_PROJEKT_RED\MathsLib\results"
 
 Dot: 32
 
@@ -10,7 +10,7 @@ AVX2 usable: true
 
 FMA usable: true
 
-Seed: 12345, vectors per batch: 1000
+Seed: 12345, vectors per batch: 100 / 1 000 / 250 000 / 1 000 000
 
 Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
 
