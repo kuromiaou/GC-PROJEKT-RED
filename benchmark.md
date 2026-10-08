@@ -1,13 +1,22 @@
 Results can be found in "GC-PROJEKT-RED\GC_PROJEKT_RED\MathsLib\results"
 
 Dot: 32
+
 CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
+
 SSE usable: true
+
 AVX2 usable: true
+
 FMA usable: true
+
 Seed: 12345, vectors per batch: 1000
+
 Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
+
 Observable checksum: 69.522
+
+-------------------------------------------------------------------------------------
 
 
 ns per vector (nanobench batch = vectors per batch), 10 runs, seed 12345
@@ -31,6 +40,7 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 |         `Normalize` |               0.97  |    0.86 |      1.21 |No clear diff|       100
 |               `Dot` |               0.61  |    0.45 |      0.67 | SIMD slower |       100
 |    `Mat4x4 * Vec4f` |               2.15  |    2.11 |      2.56 | SIMD faster |       100
+
 -------------------------------------------------------------------------------------
 
 
@@ -52,7 +62,7 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 |    `Mat4x4 * Vec4f` |               2.12  |    2.05 |      2.16 | SIMD faster |     1 000
 
 
-#-------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
