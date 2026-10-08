@@ -164,29 +164,29 @@ int main(const int _argc, char** _argv)
         ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
         });
 
-    bench.run("Dot", [&] {
-        for (std::size_t i = 0; i < count; ++i)
-            dotOut[i] = vecsSIMD[i].Dot(vecsSIMD[i]);
-        ankerl::nanobench::doNotOptimizeAway(dotOut.data());
-        });
+    //bench.run("Dot", [&] {
+    //    for (std::size_t i = 0; i < count; ++i)
+    //        dotOut[i] = vecsSIMD[i].Dot(vecsSIMD[i]);
+    //    ankerl::nanobench::doNotOptimizeAway(dotOut.data());
+    //    });
 
-    bench.run("CPP_Dot", [&] {
-        for (std::size_t i = 0; i < count; ++i)
-            dotOut[i] = vecsCPP[i].Dot(vecsCPP[i]);
-        ankerl::nanobench::doNotOptimizeAway(dotOut.data());
-        });
+    //bench.run("CPP_Dot", [&] {
+    //    for (std::size_t i = 0; i < count; ++i)
+    //        dotOut[i] = vecsCPP[i].Dot(vecsCPP[i]);
+    //    ankerl::nanobench::doNotOptimizeAway(dotOut.data());
+    //    });
 
-    bench.run("Mat4x4 * Vec4f", [&] {
-        for (std::size_t i = 0; i < count; ++i)
-            outputSIMD[i] = Mat4x4SIMD[i] * vecsSIMD[i];
-        ankerl::nanobench::doNotOptimizeAway(outputSIMD.data());
-        });
+    //bench.run("Mat4x4 * Vec4f", [&] {
+    //    for (std::size_t i = 0; i < count; ++i)
+    //        outputSIMD[i] = Mat4x4SIMD[i] * vecsSIMD[i];
+    //    ankerl::nanobench::doNotOptimizeAway(outputSIMD.data());
+    //    });
 
-    bench.run("CPP_Mat4x4 * Vec4f", [&] {
-        for (std::size_t i = 0; i < count; ++i)
-            outputCPP[i] = Mat4x4CPP[i] * vecsCPP[i];
-        ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
-        });    
+    //bench.run("CPP_Mat4x4 * Vec4f", [&] {
+    //    for (std::size_t i = 0; i < count; ++i)
+    //        outputCPP[i] = Mat4x4CPP[i] * vecsCPP[i];
+    //    ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
+    //    });    
 	
 
     return 0;

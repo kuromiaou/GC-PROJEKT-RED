@@ -18,7 +18,6 @@ Observable checksum: 69.522
 
 -------------------------------------------------------------------------------------
 
-
 ns per vector (nanobench batch = vectors per batch), 10 runs, seed 12345
 
 
