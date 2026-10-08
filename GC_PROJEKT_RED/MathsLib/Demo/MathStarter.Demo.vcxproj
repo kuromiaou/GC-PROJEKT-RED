@@ -79,6 +79,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Demo\main.cpp" />
+    <ClCompile Include="..\Platform\CpuFeatures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Maths\Base_Matrix3x3.h" />
@@ -92,6 +93,7 @@
     <ClInclude Include="..\Maths\Vec4f.h" />
     <ClInclude Include="..\Maths\Vec4d.h" />
     <ClInclude Include="..\Benchmark\Benchmark.h" />
+    <ClInclude Include="..\Platform\CpuFeatures.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)/Microsoft.Cpp.targets" />
 </Project>

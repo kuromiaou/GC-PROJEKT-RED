@@ -42,17 +42,17 @@ namespace Maths
         Matrix4x4& operator*=(const Matrix4x4& rhs);
         bool operator==(const Matrix4x4& rhs) const;
         bool operator!=(const Matrix4x4& rhs) const;
-        Matrix4x4 Transpose() const;
-        float Determinant() const;
-        // Gauss-Jordan with scaled partial pivoting. Rejects singular/ill-conditioned input.
-        Matrix4x4 Inverse(float relativeTolerance = float{64} * std::numeric_limits<float>::epsilon()) const;
-        static Matrix4x4 Scale(const Vec3f& scale);
-        static Matrix4x4 RotationX(float radians);
-        static Matrix4x4 RotationY(float radians);
-        static Matrix4x4 RotationZ(float radians);
-        static Matrix4x4 Translation(const Vec3f& offset);
-        Vec3f TransformPoint(const Vec3f& point) const; // Affine only, w = 1.
-        Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
+        //Matrix4x4 Transpose() const;
+        //float Determinant() const;
+        //// Gauss-Jordan with scaled partial pivoting. Rejects singular/ill-conditioned input.
+        //Matrix4x4 Inverse(float relativeTolerance = float{64} * std::numeric_limits<float>::epsilon()) const;
+        //static Matrix4x4 Scale(const Vec3f& scale);
+        //static Matrix4x4 RotationX(float radians);
+        //static Matrix4x4 RotationY(float radians);
+        //static Matrix4x4 RotationZ(float radians);
+        //static Matrix4x4 Translation(const Vec3f& offset);
+        //Vec3f TransformPoint(const Vec3f& point) const; // Affine only, w = 1.
+        //Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
     };
 
     inline Matrix4x4::Matrix4x4() : row()
@@ -137,7 +137,7 @@ namespace Maths
         return _mm_hadd_ps(_mm_hadd_ps(t0, t1), _mm_hadd_ps(t2, t3));
     }
 
-    Matrix4x4 Matrix4x4::operator*(float scalar) const
+    inline Matrix4x4 Matrix4x4::operator*(float scalar) const
     {
         Matrix4x4 result = Zero();
 

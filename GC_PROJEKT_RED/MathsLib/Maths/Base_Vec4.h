@@ -206,20 +206,8 @@ namespace Base_Maths
     template <std::floating_point T>
     BVec4<T> BVec4<T>::Normalize() const
     {
-        if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || !std::isfinite(w))
-        {
-            throw std::domain_error("Cannot normalize non-finite components");
-        }
-
-        // Scaling avoids overflowing/underflowing the squared magnitude.
-        const T scale = std::max({std::abs(x), std::abs(y), std::abs(z), std::abs(w)});
-        if (scale == T{0})
-        {
-            throw std::domain_error("Cannot normalize the zero vector");
-        }
-
-        const BVec4 scaled = *this / scale;
-        return scaled / scaled.Magnitude();
+        const T inv = T{ 1 } / std::sqrt(x * x + y * y + z * z + w * w);
+        return { x * inv, y * inv, z * inv, w * inv };
     }
 
     template <std::floating_point T>
