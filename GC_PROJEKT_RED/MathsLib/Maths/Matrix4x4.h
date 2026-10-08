@@ -23,6 +23,7 @@ namespace Maths
         inline Matrix4x4(); // Identity. 
         inline explicit Matrix4x4(const std::array<float, 16>& elements);
         inline Matrix4x4(__m128 row0, __m128 row1, __m128 row2, __m128 row3);
+        inline Matrix4x4(const Vec4f& r0, const Vec4f& r1, const Vec4f& r2, const Vec4f& r3);
 
         inline static Matrix4x4 Identity();
         inline static Matrix4x4 Zero();
@@ -43,13 +44,13 @@ namespace Maths
         //bool operator==(const Matrix4x4& rhs) const;
         //bool operator!=(const Matrix4x4& rhs) const;
         //Matrix4x4 Transpose() const;
-        //T Determinant() const;
+        //float Determinant() const;
         //// Gauss-Jordan with scaled partial pivoting. Rejects singular/ill-conditioned input.
-        //Matrix4x4 Inverse(T relativeTolerance = T{64} * std::numeric_limits<T>::epsilon()) const;
+        //Matrix4x4 Inverse(float relativeTolerance = float{64} * std::numeric_limits<float>::epsilon()) const;
         //static Matrix4x4 Scale(const Vec3f& scale);
-        //static Matrix4x4 RotationX(T radians);
-        //static Matrix4x4 RotationY(T radians);
-        //static Matrix4x4 RotationZ(T radians);
+        //static Matrix4x4 RotationX(float radians);
+        //static Matrix4x4 RotationY(float radians);
+        //static Matrix4x4 RotationZ(float radians);
         //static Matrix4x4 Translation(const Vec3f& offset);
         //Vec3f TransformPoint(const Vec3f& point) const; // Affine only, w = 1.
         //Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
@@ -177,6 +178,15 @@ namespace Maths
     //{
     //    return !(*this == rhs);
     //}
+
+
+    inline Matrix4x4::Matrix4x4(const Vec4f& r0, const Vec4f& r1, const Vec4f& r2, const Vec4f& r3)
+    {
+        row[0] = r0.reg; 
+        row[1] = r1.reg; 
+        row[2] = r2.reg; 
+        row[3] = r3.reg;
+    }
 
     //template <std::floating_point T>
     //Matrix4x4<T> Matrix4x4<T>::Transpose() const
