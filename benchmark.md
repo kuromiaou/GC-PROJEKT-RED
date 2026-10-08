@@ -20,9 +20,17 @@ Dot                    0.61 0.45 0.67 SIMD slower in every run               100
 Mat4x4 * Vec4f         2.15 2.11 2.56 SIMD faster in every run               100
 
 -------------------------------------------------------------------------------------
+Dot: 32
+CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
+SSE usable: true
+AVX2 usable: true
+FMA usable: true
+Seed: 12345, vectors per batch: 1000
+Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
+Observable checksum: 69.522
 
-Benchmark          Median ns/op  Min  Max Spread %
----------          ------------  ---  --- --------
+Benchmark          |Median ns/op | Min | Max Spread | %
+|--------------------:|--------------------:|--------:|----------:|:----------
 Normalize                  1.76 1.63 2.05     23.9
 CPP_Normalize             1.735 1.71  1.8      5.2
 Dot                        0.81  0.8 0.82      2.5
@@ -38,14 +46,6 @@ Normalize                 1 0.83 1.09 ratio crosses 1.0: no clear difference 1 0
 Dot                     0.6  0.6 0.69 SIMD slower in every run               1 000
 Mat4x4 * Vec4f         2.12 2.05 2.16 SIMD faster in every run               1 000
 
-Dot: 32
-CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
-SSE usable: true
-AVX2 usable: true
-FMA usable: true
-Seed: 12345, vectors per batch: 1000
-Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
-Observable checksum: 69.522
 
 |               ns/op |                op/s |    err% |     total | benchmark
 |--------------------:|--------------------:|--------:|----------:|:----------
