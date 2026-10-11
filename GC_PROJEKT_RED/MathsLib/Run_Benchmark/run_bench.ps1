@@ -134,7 +134,7 @@ $ratios = foreach ($p in $pairs) {
         'Min'          = [math]::Round($st.Min, 2)
         'Max'          = [math]::Round($st.Max, 2)
         Verdict        = $verdict
-	'Count'        = '250 000'
+	'Count'        = '1 000 000'
     }
 }
 

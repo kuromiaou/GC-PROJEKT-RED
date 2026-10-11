@@ -96,7 +96,7 @@ int main(const int _argc, char** _argv)
         : std::random_device{}();
     std::mt19937 engine(seed);
     std::uniform_real_distribution<float> distribution(-10.0f, 10.0f);
-    const std::size_t count = 1000000;
+    const std::size_t count = 10000000;
     std::vector<Vec4f> input(count);
     std::vector<Vec4f> outputSIMD(count);
     std::vector<BVec4<float>> outputCPP(count);
