@@ -1,0 +1,4 @@
+﻿"Treatment","Median ratio","Min","Max","Verdict","Count"
+"Normalize","1.05","0.92","1.09","ratio crosses 1.0: no clear difference","1 000 000"
+"Dot","0.94","0.84","0.99","SIMD slower in every run","1 000 000"
+"Mat4x4 * Vec4f","1.17","1.09","1.26","SIMD faster in every run","1 000 000"

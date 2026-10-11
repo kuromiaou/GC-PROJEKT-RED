@@ -201,15 +201,15 @@ namespace Maths
         s = _mm_add_ss(s, _mm_shuffle_ps(s, s, 1));     // {26, 44, 42, 64} s = {70 , 0 , 0 , 0} 
         return _mm_cvtss_f32(s);
     }
-
-    inline float Vec4f::MagnitudeSquared() const
-    {
-        return Dot(*this);
-    }
   
     inline float Vec4f::Dot(const Vec4f& rhs) const
     {
         return _mm_cvtss_f32(_mm_dp_ps(reg, rhs.reg, 0xF1));
+    }
+
+    inline float Vec4f::MagnitudeSquared() const
+    {
+        return Dot(*this);
     }
 
     inline float Vec4f::Magnitude() const

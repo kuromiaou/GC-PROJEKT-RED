@@ -1,0 +1,23 @@
+﻿ns per vector (nanobench batch = vectors per batch), 10 runs, seed 12345
+
+Benchmark          Median ns/op  Min  Max Spread %
+---------          ------------  ---  --- --------
+Normalize                 1.945 1.86 2.02      8.2
+CPP_Normalize              1.91 1.84 2.03      9.9
+Dot                       1.335 1.23 1.43       15
+CPP_Dot                    1.27 1.15 1.36     16.5
+Mat4x4 * Vec4f            4.105 3.88  4.7       20
+CPP_Mat4x4 * Vec4f        4.705 4.47  5.1     13.4
+
+
+
+Ratio = reference time / SIMD time (>1 means SIMD faster)
+
+Treatment      Median ratio  Min  Max Verdict                                Count    
+---------      ------------  ---  --- -------                                -----    
+Normalize              0.99 0.92 1.08 ratio crosses 1.0: no clear difference 1 000 000
+Dot                    0.94 0.83 1.03 ratio crosses 1.0: no clear difference 1 000 000
+Mat4x4 * Vec4f         1.13 1.05  1.2 SIMD faster in every run               1 000 000
+
+
+

@@ -1,8 +1,6 @@
 # Results can be found in "GC-PROJEKT-RED\GC_PROJEKT_RED\MathsLib\results"
 
-Dot: 32
-
-CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
+CPU used for benchmark : AMD Ryzen 7 7700 8-Core Processor
 
 SSE usable: true
 
@@ -10,21 +8,17 @@ AVX2 usable: true
 
 FMA usable: true
 
-Seed: 12345, vectors_per_batch: 100 / 1 000 / 250 000 / 1 000 000
+Seed: 12345, vectors_per_batch (`count` in `main.cpp`): 100 / 1 000 / 250 000 / 1 000 000
 
 Epochs: 100
 Warmup: 10
 Batch : vectors_per_batch
 
-
-Batch incl. checksum: min 0.002 ms, median 0.003 ms, max 0.003 ms
-
-Observable checksum: 69.522
+ns per vector (nanobench batch = vectors per batch), 10 runs each, seed 12345
 
 -------------------------------------------------------------------------------------
 
-ns per vector (nanobench batch = vectors per batch), 10 runs, seed 12345
-
+`2026-10-08_21-21-44`
 
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
@@ -47,6 +41,7 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 
 -------------------------------------------------------------------------------------
 
+`2026-10-08_21-19-04`
 
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
@@ -68,6 +63,8 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 
 -------------------------------------------------------------------------------------
 
+`2026-10-08_21-19-26`
+
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
 |         `Normalize` |               1.945 |    1.68 |      2.03   
@@ -87,6 +84,8 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 
 -------------------------------------------------------------------------------------
 
+`2026-10-08_21-15-58`
+
 |           benchmark |               ns/op |     Min |       Max 
 |--------------------:|--------------------:|--------:|-----------
 |         `Normalize` |               2.03  |    1.7  |      2.03   
@@ -100,6 +99,6 @@ Ratio = reference time / SIMD time (>1 means SIMD faster)
 
 |           Treatment |               Ratio |     Min |       Max |    Verdict  |     Count
 |--------------------:|--------------------:|--------:|----------:|------------:|-----------
-|         `Normalize` |               0.92  |    0.86 |      1.13 |No clear diff|  1 000 000
-|               `Dot` |               0.61  |    0.55 |      0.65 | SIMD slower |  1 000 000
-|    `Mat4x4 * Vec4f` |               1.45  |    1.21 |      1.78 | SIMD faster |  1 000 000
+|         `Normalize` |               0.87  |    0.87 |      1.05 |No clear diff|  1 000 000
+|               `Dot` |               0.65  |    0.6  |      0.94 | SIMD slower |  1 000 000
+|    `Mat4x4 * Vec4f` |               1.20  |    1.19 |      1.28 | SIMD faster |  1 000 000

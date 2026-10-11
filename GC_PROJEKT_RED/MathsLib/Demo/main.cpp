@@ -96,32 +96,29 @@ int main(const int _argc, char** _argv)
         : std::random_device{}();
     std::mt19937 engine(seed);
     std::uniform_real_distribution<float> distribution(-10.0f, 10.0f);
-    const std::size_t count = 250000;
-    std::vector<Vec4f> left(count);
-    std::vector<Vec4f> right(count);
+    const std::size_t count = 1000000;
     std::vector<Vec4f> input(count);
     std::vector<Vec4f> outputSIMD(count);
     std::vector<BVec4<float>> outputCPP(count);
     std::vector<Vec4f> vecsSIMD(count);
+    std::vector<Vec4f> vecsSIMD2(count);
     std::vector<BVec4<float>> vecsCPP(count);
+    std::vector<BVec4<float>> vecsCPP2(count);
     std::vector<Matrix4x4> Mat4x4SIMD(count);
+    std::vector<Matrix4x4> Mat4x4SIMD2(count);
     std::vector<BMatrix4x4<float>> Mat4x4CPP(count);
+    std::vector<BMatrix4x4<float>> Mat4x4CPP2(count);
     for (std::size_t i = 0; i < count; ++i)
     {
-        left[i] = { distribution(engine), distribution(engine), distribution(engine), distribution(engine) };        
-        right[i] = { distribution(engine), distribution(engine), distribution(engine), distribution(engine) };
 		vecsSIMD[i] = { distribution(engine), distribution(engine), distribution(engine), distribution(engine) };
-        vecsCPP[i] = { distribution(engine), distribution(engine), distribution(engine), distribution(engine) };
-		Mat4x4CPP[i] = BMatrix4x4<float>({ distribution(engine), distribution(engine), distribution(engine), distribution(engine),
-			distribution(engine), distribution(engine), distribution(engine), distribution(engine),
-			distribution(engine), distribution(engine), distribution(engine), distribution(engine),
-			distribution(engine), distribution(engine), distribution(engine), distribution(engine) });
-		Mat4x4SIMD[i] = Matrix4x4({ distribution(engine), distribution(engine), distribution(engine), distribution(engine),
-			distribution(engine), distribution(engine), distribution(engine), distribution(engine),
-			distribution(engine), distribution(engine), distribution(engine), distribution(engine),
-			distribution(engine), distribution(engine), distribution(engine), distribution(engine) });
+		vecsCPP[i] = { vecsSIMD[i].reg.m128_f32[0], vecsSIMD[i].reg.m128_f32[1], vecsSIMD[i].reg.m128_f32[2], vecsSIMD[i].reg.m128_f32[3] };
+		vecsSIMD2[i] = { distribution(engine), distribution(engine), distribution(engine), distribution(engine) };
+		vecsCPP2[i] = { vecsSIMD2[i].reg.m128_f32[0], vecsSIMD2[i].reg.m128_f32[1], vecsSIMD2[i].reg.m128_f32[2], vecsSIMD2[i].reg.m128_f32[3] };
+        std::array<float, 16> e;
+        for (auto& f : e) f = distribution(engine);
+        Mat4x4SIMD[i] = Matrix4x4(e);
+        Mat4x4CPP[i] = BMatrix4x4<float>(e);
     }
-
     const auto result = Benchmark::Run([&]
         {
             for (std::size_t i = 0; i < count; ++i)
@@ -164,29 +161,29 @@ int main(const int _argc, char** _argv)
         ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
         });
 
-    //bench.run("Dot", [&] {
-    //    for (std::size_t i = 0; i < count; ++i)
-    //        dotOut[i] = vecsSIMD[i].Dot(vecsSIMD[i]);
-    //    ankerl::nanobench::doNotOptimizeAway(dotOut.data());
-    //    });
+    bench.run("Dot", [&] {
+        for (std::size_t i = 0; i < count; ++i)
+            dotOut[i] = vecsSIMD[i].Dot(vecsSIMD2[i]);
+        ankerl::nanobench::doNotOptimizeAway(dotOut.data());
+        });
 
-    //bench.run("CPP_Dot", [&] {
-    //    for (std::size_t i = 0; i < count; ++i)
-    //        dotOut[i] = vecsCPP[i].Dot(vecsCPP[i]);
-    //    ankerl::nanobench::doNotOptimizeAway(dotOut.data());
-    //    });
+    bench.run("CPP_Dot", [&] {
+        for (std::size_t i = 0; i < count; ++i)
+            dotOut[i] = vecsCPP[i].Dot(vecsCPP2[i]);
+        ankerl::nanobench::doNotOptimizeAway(dotOut.data());
+        });
 
-    //bench.run("Mat4x4 * Vec4f", [&] {
-    //    for (std::size_t i = 0; i < count; ++i)
-    //        outputSIMD[i] = Mat4x4SIMD[i] * vecsSIMD[i];
-    //    ankerl::nanobench::doNotOptimizeAway(outputSIMD.data());
-    //    });
+    bench.run("Mat4x4 * Vec4f", [&] {
+        for (std::size_t i = 0; i < count; ++i)
+            outputSIMD[i] = Mat4x4SIMD[i] * vecsSIMD2[i];
+        ankerl::nanobench::doNotOptimizeAway(outputSIMD.data());
+        });
 
-    //bench.run("CPP_Mat4x4 * Vec4f", [&] {
-    //    for (std::size_t i = 0; i < count; ++i)
-    //        outputCPP[i] = Mat4x4CPP[i] * vecsCPP[i];
-    //    ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
-    //    });    
+    bench.run("CPP_Mat4x4 * Vec4f", [&] {
+        for (std::size_t i = 0; i < count; ++i)
+            outputCPP[i] = Mat4x4CPP[i] * vecsCPP2[i];
+        ankerl::nanobench::doNotOptimizeAway(outputCPP.data());
+        });    
 	
 
     return 0;

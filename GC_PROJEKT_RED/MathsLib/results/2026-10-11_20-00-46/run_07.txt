@@ -1,0 +1,17 @@
+﻿Dot: 32
+CPU: AuthenticAMD / AMD Ryzen 7 7700 8-Core Processor
+SSE usable: true
+AVX2 usable: true
+FMA usable: true
+Seed: 12345, vectors per batch: 1000000
+Batch incl. checksum: min 2.605 ms, median 2.840 ms, max 3.118 ms
+Observable checksum: -12627.764
+
+|               ns/op |                op/s |    err% |     total | benchmark
+|--------------------:|--------------------:|--------:|----------:|:----------
+|                1.93 |      517,638,533.01 |    7.3% |      0.19 | :wavy_dash: `Normalize` (Unstable with ~1.0 iters. Increase `minEpochIterations` to e.g. 10)
+|                1.89 |      529,969,791.72 |    4.2% |      0.20 | `CPP_Normalize`
+|                1.28 |      779,848,709.35 |    6.0% |      0.13 | :wavy_dash: `Dot` (Unstable with ~1.0 iters. Increase `minEpochIterations` to e.g. 10)
+|                1.22 |      818,230,168.15 |    6.4% |      0.12 | :wavy_dash: `CPP_Dot` (Unstable with ~1.0 iters. Increase `minEpochIterations` to e.g. 10)
+|                3.95 |      253,042,840.15 |    4.4% |      0.40 | `Mat4x4 * Vec4f`
+|                4.74 |      210,812,577.08 |    4.9% |      0.48 | `CPP_Mat4x4 * Vec4f`
