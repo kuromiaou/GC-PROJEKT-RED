@@ -1,0 +1,73 @@
+# ==========================================
+# GitHub Classroom CMake + Visual Studio 3D Engine
+# ==========================================
+
+# ----------------------
+# Build directories
+# ----------------------
+/build/
+/out/
+
+# ----------------------
+# Visual Studio
+# ----------------------
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.VC.db
+*.VC.VC.opendb
+*.ncb
+*.opendb
+*.opensdf
+
+# ----------------------
+# CMake
+# ----------------------
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+CMakeSettings.json
+Makefile
+cmake_install.cmake
+Testing/
+compile_commands.json
+
+# ----------------------
+# Binary & intermediate files
+# ----------------------
+*.o
+*.exe
+*.pdb
+*.idb
+*.ipch
+*.iobj
+*.iuser
+*.lastbuildstate
+
+# ----------------------
+# Logs
+# ----------------------
+*.log
+
+# ----------------------
+# OS files
+# ----------------------
+Thumbs.db
+.DS_Store
+# ----------------------
+# Engine includes
+# ----------------------
+!Engine/include/**/
+
+# ----------------------
+# Keep Audio and Graphic and Physic APIs to implement
+# ----------------------
+!Engine/Assets/**/
+!Engine/Assets/FMOD/api/core/lib/x64
+
+#Ignore useless files
+Engine/Assets/FMOD/**/[Ee]xamples/
+Engine/Assets/FMOD/uninstall.exe
+Engine/Assets/FMOD/doc
