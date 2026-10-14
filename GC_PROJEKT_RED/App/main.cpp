@@ -1,9 +1,7 @@
 #include "Platform/Window.h"
 
-int main() {
-	Window window;
-
-	window.TestWindow();
-	
-	return 0;
+int main()
+{
+    Window window;
+    return window.TestWindow();
 }
