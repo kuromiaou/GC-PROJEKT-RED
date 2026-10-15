@@ -15,6 +15,38 @@ void Window::put_pixel(int x, int y, uint32_t color)
     framebuffer[static_cast<size_t>(y) * WIDTH + x] = color;
 }
 
+void Window::put_line(int x, int y, uint32 color)
+{
+    void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
+        int dx = abs(x1 - x0);
+        int dy = -abs(y1 - y0);             
+        int sx = (x0 < x1) ? 1 : -1;
+        int sy = (y0 < y1) ? 1 : -1;
+        int err = dx + dy;                 
+
+        for (;;) {
+            put_pixel(x0, y0, color);
+            if (x0 == x1 && y0 == y1) break;
+            int e2 = 2 * err;
+            if (e2 >= dy) { err += dy; x0 += sx; }   
+            if (e2 <= dx) { err += dx; y0 += sy; }  
+        }
+    }
+}
+
+void HandleButtonEvent(SDL_MouseButtonEvent& E) {
+    if (E.button == SDL_BUTTON_LEFT) {
+    }
+    else if (E.button == SDL_BUTTON_RIGHT) {
+    }
+
+    if (
+        E.button == SDL_BUTTON_LEFT &&
+        E.state == SDL_PRESSED
+        ) {
+    }
+}
+
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -57,14 +89,6 @@ int Window::TestWindow()
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)
                 running = false;
         }
-
-        //for (int y = 0; y < HEIGHT; y++) {
-        //    for (int x = 0; x < WIDTH; x++) {
-        //        uint8_t r = static_cast<uint8_t>(x * 255 / WIDTH);
-        //        uint8_t b = static_cast<uint8_t>(y * 255 / HEIGHT);
-        //        put_pixel(x, y, rgb(r, 64, b));
-        //    }
-        //}
         for (int x = 0; x < WIDTH; x++) {
             put_pixel(x, 300, rgb(255, 64, 0));
         }
