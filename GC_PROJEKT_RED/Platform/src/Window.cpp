@@ -5,7 +5,10 @@ Window::Window()
     : framebuffer(static_cast<size_t>(WIDTH)* HEIGHT)
 {
 }
-
+uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
+{
+    return (0xFFu << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
+}
 void Window::put_pixel(int x, int y, uint32_t color)
 {
     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
