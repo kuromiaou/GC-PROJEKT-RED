@@ -34,17 +34,20 @@ void Window::put_line(int x, int y, uint32 color)
     }
 }
 
-void HandleButtonEvent(SDL_MouseButtonEvent& E) {
-    if (E.button == SDL_BUTTON_LEFT) {
+int HandleButtonEvent(SDL_MouseButtonEvent& Event) {
+    if (Event.button == SDL_BUTTON_LEFT) {
+        return 1
     }
-    else if (E.button == SDL_BUTTON_RIGHT) {
+    else if (Event.button == SDL_BUTTON_RIGHT) {
+        return 2
     }
 
     if (
-        E.button == SDL_BUTTON_LEFT &&
-        E.state == SDL_PRESSED
+        Event.button == SDL_BUTTON_LEFT &&
+        Event.down
         ) {
     }
+    return 0
 }
 
 int Window::TestWindow()
