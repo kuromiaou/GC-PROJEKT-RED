@@ -1,11 +1,11 @@
 #include "Platform/Window.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
+#include <cmath>
 
 Window::Window()
     : framebuffer(static_cast<size_t>(WIDTH)* HEIGHT)
-{
-}
+{}
 inline uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (0xFFu << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
@@ -77,154 +77,151 @@ inline void Window::put_triangle(int x0, int y0, uint32_t c0,
             int e2 = edge(x0, y0, x1, y1, x, y);
             // Inside iff all three weights are non-negative.
             if ((e0 | e1 | e2) >= 0) {
-                framebuffer[y * WIDTH + x] =
+                framebuffer[static_cast<size_t>(y) * WIDTH + x] =
                     shade(e0, e1, e2, area, c0, c1, c2);
             }
         }
     }
 }
 
-void Window::clear(uint32_t color) {
-    for (int i = 0; i < WIDTH * HEIGHT; i++) framebuffer[i] = color;
+// Integer midpoint circle (Appendix B.4): no sin/cos/sqrt, just adds and
+// the circle's 8-fold symmetry. `d` plays the role of Bresenham's error term.
+void Window::put_circle(int cx, int cy, int r, uint32_t color) {
+    int x = 0;
+    int y = r;
+    int d = 3 - 2 * r;
+    while (x <= y) {
+        put_pixel(cx + x, cy + y, color);
+        put_pixel(cx - x, cy + y, color);
+        put_pixel(cx + x, cy - y, color);
+        put_pixel(cx - x, cy - y, color);
+        put_pixel(cx + y, cy + x, color);
+        put_pixel(cx - y, cy + x, color);
+        put_pixel(cx + y, cy - x, color);
+        put_pixel(cx - y, cy - x, color);
+        x++;
+        if (d > 0) { y--; d += 4 * (x - y) + 10; }
+        else { d += 4 * x + 6; }
+    }
 }
+
+void Window::clear(uint32_t color) {
+    std::fill(framebuffer.begin(), framebuffer.end(), color);
+}
+
+static const vec3 CUBE_VERTS[8] = {
+    {-1, -1, -1}, { 1, -1, -1}, { 1,  1, -1}, {-1,  1, -1},
+    {-1, -1,  1}, { 1, -1,  1}, { 1,  1,  1}, {-1,  1,  1},
+};
+
+static const int CUBE_EDGES[12][3] = {
+    {0,1,0}, {3,2,0}, {7,6,0}, {4,5,0},   // edges along x
+    {0,3,1}, {1,2,1}, {5,6,1}, {4,7,1},   // edges along y
+    {0,4,2}, {1,5,2}, {2,6,2}, {3,7,2},   // edges along z
+};
+// Chapter 04: spin an equilateral triangle with a rotation matrix.
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-
-    //SDL_Window* window = SDL_CreateWindow("Chapter 01 - Framebuffer", WIDTH, HEIGHT, 0);
-    //if (!window) {
-    //    SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
-    //    SDL_Quit();
-    //    return 1;
-    //}
-
-    //SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-    //if (!renderer) {
-    //    SDL_Log("SDL_CreateRenderer failed: %s", SDL_GetError());
-    //    SDL_DestroyWindow(window);
-    //    SDL_Quit();
-    //    return 1;
-    //}
-    //SDL_SetRenderVSync(renderer, 1);
-
-    //SDL_Texture* texture = SDL_CreateTexture(
-    //    renderer, SDL_PIXELFORMAT_ARGB8888,
-    //    SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
-    //if (!texture) {
-    //    SDL_Log("SDL_CreateTexture failed: %s", SDL_GetError());
-    //    SDL_DestroyRenderer(renderer);
-    //    SDL_DestroyWindow(window);
-    //    SDL_Quit();
-    //    return 1;
-    //}
-
-    SDL_Window* window = SDL_CreateWindow("Chapter 02 — Lines", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 04 - Vectors & matrices", WIDTH, HEIGHT, 0);
+    if (!window) {
+        SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
     SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
+    if (!renderer) {
+        SDL_Log("SDL_CreateRenderer failed: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
     SDL_Texture* texture = SDL_CreateTexture(renderer,
-        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
-        WIDTH, HEIGHT);
+        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+    if (!texture) {
+        SDL_Log("SDL_CreateTexture failed: %s", SDL_GetError());
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
 
-    //const Uint64 freq = SDL_GetPerformanceFrequency();
-    //Uint64 last = SDL_GetPerformanceCounter();
-    //double fps_accum = 0.0;
-    //int    fps_count = 0;
-    //char   title[160];
+    // Equilateral triangle around the origin: three points 120 degrees
+    // apart on a circle of radius R, starting at the top.
+    constexpr float PI = 3.14159265358979323846f;
+    constexpr float R = 200.0f;
+    Maths::Vec3f base[3];
+    for (int i = 0; i < 3; i++) {
+        const float a = static_cast<float>(i) / 3.0f * 2.0f * PI - PI / 2.0f;
+        base[i] = Maths::Vec3f(R * std::cos(a), R * std::sin(a), 0.0f);
+    }
+    const uint32_t cornerColor[3] = { rgb(255, 60, 60), rgb(60, 255, 60), rgb(60, 60, 255) };
 
-    //double angle_offset = 0.0;                  
-    //const double theta = 0.002;                  
-    //const int every_n_frames = 1;               
-    //int frame = 0;
+    // FPS counter (chapter 2): refreshed once per second.
+    const Uint64 freq = SDL_GetPerformanceFrequency();
+    const Uint64 start = SDL_GetPerformanceCounter();
+    Uint64 last = start;
+    double fpsAccum = 0.0;
+    int    fpsCount = 0;
+    char   title[160];
 
     bool running = true;
     SDL_Event e;
     while (running) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) running = false;
-            if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)
-                running = false;
+            if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE) running = false;
         }
 
-        std::fill(framebuffer.begin(), framebuffer.end(), rgb(0, 0, 0));
+        // 1 radian per second.
+        const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / static_cast<double>(freq);
+        const float angle = static_cast<float>(seconds);
+
+        // (A * B) applies B first: rotate about the origin, THEN move to
+        // the screen centre. A positive angle looks clockwise because the
+        // framebuffer is y-down (README 4.8).
+        const Maths::Matrix4x4 transform =
+            Maths::Matrix4x4::Translation(WIDTH / 2.0f, HEIGHT / 2.0f, 0.0f) *
+            Maths::Matrix4x4::RotationZ(angle);
+
+        int px[3], py[3];
+        for (int i = 0; i < 3; i++) {
+            const Maths::Vec3f p = transform.TransformPoint(base[i]);
+            px[i] = static_cast<int>(p.X());
+            py[i] = static_cast<int>(p.Y());
+        }
+
         clear(rgb(16, 16, 24));
 
-        //for (int y = 0; y < HEIGHT; y++) {
-        //    for (int x = 0; x < WIDTH; x++) {
-        //        uint8_t r = static_cast<uint8_t>(x * 255 / WIDTH);
-        //        uint8_t b = static_cast<uint8_t>(y * 255 / HEIGHT);
-        //        put_pixel(x, y, rgb(r, 64, b));
-        //    }
-        //}
-        //for (int x = 0; x < WIDTH; x++) {
-        //    put_pixel(x, 300, rgb(255, 64, 0));
-        //}
-        
-        //const int cx = WIDTH / 2;
-        //const int cy = HEIGHT / 2;
-        //const int spokes = 64;
-        //const int radius = (HEIGHT / 2) - 20;
-        //const double TWO_PI = 6.2831853071795864;
+        put_circle(WIDTH / 2, HEIGHT / 2, static_cast<int>(R), rgb(60, 60, 80));
+        put_triangle(px[0], py[0], cornerColor[0],
+            px[1], py[1], cornerColor[1],
+            px[2], py[2], cornerColor[2]);
+        put_line(px[0], py[0], px[1], py[1], rgb(255, 255, 255));
+        put_line(px[1], py[1], px[2], py[2], rgb(255, 255, 255));
+        put_line(px[2], py[2], px[0], py[0], rgb(255, 255, 255));
 
-        //for (int i = 0; i < spokes; i++) {
-        //    double t0 = (double)i / (double)spokes * TWO_PI;   
-        //    double t = t0 + angle_offset;
-        //    double ct = SDL_cos(t);
-        //    double st = SDL_sin(t);
-        //    int ex = cx + (int)(radius * ct);
-        //    int ey = cy + (int)(radius * st);
-        //    uint8_t r = (uint8_t)(127.0 + 127.0 * ct);
-        //    uint8_t g = (uint8_t)(127.0 + 127.0 * st);
-        //    put_line(cx, cy, ex, ey, rgb(r, g, 200));
-        //}
-        //frame++;
-        //if (frame % every_n_frames == 0) {
-        //    angle_offset += theta;
-        //    if (angle_offset >= TWO_PI) angle_offset -= TWO_PI;  
-        //}
-
-
-        //Uint64 now = SDL_GetPerformanceCounter();
-        //double dt = (double)(now - last) / (double)freq;
-        //last = now;
-        //fps_accum += dt;
-        //fps_count += 1;
-        //if (fps_accum >= 1.0) {
-        //    double fps = (double)fps_count / fps_accum;
-        //    double ms = 1000.0 * fps_accum / (double)fps_count;
-        //    snprintf(title, sizeof title,
-        //        "Chapter X — <...>  |  %.1f FPS  (%.2f ms/frame)",
-        //        fps, ms);
-        //    SDL_SetWindowTitle(window, title);
-        //    fps_accum = 0.0;
-        //    fps_count = 0;
-        //}
-        
-        // 1) Big triangle with red / green / blue corners. The
-        // smooth gradient inside IS the barycentric blend.
-        put_triangle(150, 480, rgb(255, 0, 0),
-            400, 80, rgb(0, 255, 0),
-            650, 480, rgb(0, 0, 255));
-
-        // 2) Small flat-shaded triangle (same colour x3).
-        put_triangle(60, 60, rgb(240, 240, 240),
-            200, 60, rgb(240, 240, 240),
-            130, 170, rgb(240, 240, 240));
-
-        // 3) White wireframe over the big triangle's edges.
-        put_line(150, 480, 400, 80, rgb(255, 255, 255));
-        put_line(400, 80, 650, 480, rgb(255, 255, 255));
-        put_line(650, 480, 150, 480, rgb(255, 255, 255));
-
-        //SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * sizeof(uint32_t));
-        //SDL_RenderClear(renderer);
-        //SDL_RenderCopy(renderer, texture, NULL, NULL);
-        //SDL_RenderPresent(renderer);
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
         SDL_RenderClear(renderer);
         SDL_RenderTexture(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
+
+        const Uint64 now = SDL_GetPerformanceCounter();
+        fpsAccum += static_cast<double>(now - last) / static_cast<double>(freq);
+        last = now;
+        fpsCount += 1;
+        if (fpsAccum >= 1.0) {
+            const double fps = fpsCount / fpsAccum;
+            const double ms = 1000.0 * fpsAccum / fpsCount;
+            snprintf(title, sizeof title,
+                "Chapter 04 - Vectors & matrices  |  %.1f FPS  (%.2f ms/frame)", fps, ms);
+            SDL_SetWindowTitle(window, title);
+            fpsAccum = 0.0;
+            fpsCount = 0;
+        }
     }
 
     SDL_DestroyTexture(texture);

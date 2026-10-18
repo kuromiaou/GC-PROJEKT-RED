@@ -38,7 +38,7 @@ namespace Maths
         inline Vec3f& operator/=(float scalar);
         inline bool operator==(const Vec3f& rhs) const;
         inline bool operator!=(const Vec3f& rhs) const;
-        
+
         inline float Dot(const Vec3f& rhs) const;
         inline float MagnitudeSquared() const;
         inline float Magnitude() const;
@@ -52,7 +52,14 @@ namespace Maths
         inline static Vec3f Lerp(const Vec3f& a, const Vec3f& b, float t);
         inline static Vec3f Min(const Vec3f& a, const Vec3f& b);
         inline static Vec3f Max(const Vec3f& a, const Vec3f& b);
-        
+
+        /// Component access (portable: no MSVC-only .m128_f32).
+        inline float X() const;
+        inline float Y() const;
+        inline float Z() const;
+        /// Cross product: a vector perpendicular to both. w stays 0.
+        inline Vec3f Cross(const Vec3f& rhs) const;
+
 
         static const Vec3f Zero;
         static const Vec3f One;
@@ -60,7 +67,7 @@ namespace Maths
         static const Vec3f UnitY;
         static const Vec3f UnitZ;
     };
-     
+
 
     inline Vec3f Vec3f::operator+(const Vec3f& rhs) const
     {
@@ -127,7 +134,7 @@ namespace Maths
     inline Vec3f& Vec3f::operator/=(const Vec3f& rhs)
     {
         assert(rhs.reg.m128_f32[0] != 0.f and rhs.reg.m128_f32[1] != 0.f and rhs.reg.m128_f32[2] != 0.f);
-        reg = _mm_div_ps(reg, rhs.reg);
+        reg = _mm_div_ps(reg, _mm_blend_ps(rhs.reg, _mm_set1_ps(1.f), 0x8));
         return *this;
     }
 
@@ -153,7 +160,7 @@ namespace Maths
     {
         return (_mm_movemask_ps(_mm_cmpeq_ps(reg, rhs.reg)) & 0x7) != 0x7;
     }
-    
+
     inline float Vec3f::Dot(const Vec3f& rhs) const
     {
         return _mm_cvtss_f32(_mm_dp_ps(reg, rhs.reg, 0x71));
@@ -211,6 +218,20 @@ namespace Maths
     {
         return _mm_max_ps(a.reg, b.reg);
     }
+    inline float Vec3f::X() const { return _mm_cvtss_f32(reg); }
+    inline float Vec3f::Y() const { return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(1, 1, 1, 1))); }
+    inline float Vec3f::Z() const { return _mm_cvtss_f32(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(2, 2, 2, 2))); }
+
+    // a x b = (a.yzx * b.zxy) - (a.zxy * b.yzx). The w lanes cancel to 0.
+    inline Vec3f Vec3f::Cross(const Vec3f& rhs) const
+    {
+        const __m128 a_yzx = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 0, 2, 1));
+        const __m128 a_zxy = _mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 1, 0, 2));
+        const __m128 b_yzx = _mm_shuffle_ps(rhs.reg, rhs.reg, _MM_SHUFFLE(3, 0, 2, 1));
+        const __m128 b_zxy = _mm_shuffle_ps(rhs.reg, rhs.reg, _MM_SHUFFLE(3, 1, 0, 2));
+        return _mm_sub_ps(_mm_mul_ps(a_yzx, b_zxy), _mm_mul_ps(a_zxy, b_yzx));
+    }
+
     inline Vec3f operator*(float scalar, const Vec3f& vector)
     {
         return _mm_mul_ps(_mm_set1_ps(static_cast<float>(scalar)), vector.reg);
@@ -224,7 +245,7 @@ namespace Maths
 
     inline const Vec3f Vec3f::UnitY{ 0, 1, 0 };
 
-    inline const Vec3f Vec3f::UnitZ{0, 0, 1};
+    inline const Vec3f Vec3f::UnitZ{ 0, 0, 1 };
 
 
 }

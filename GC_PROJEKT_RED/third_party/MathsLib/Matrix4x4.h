@@ -30,7 +30,20 @@ namespace Maths
         inline static Matrix4x4 Zero();
         /// Other version of Zero(), was used to benchmark; results are equivalent.
         inline static Matrix4x4 ZeroSIMD();
-        
+
+        // ---- Chapter 4 transforms (row-major, column vectors) ----
+        inline static Matrix4x4 Translation(float tx, float ty, float tz);
+        inline static Matrix4x4 Translation(const Vec3f& offset);
+        inline static Matrix4x4 Scale(float s);
+        inline static Matrix4x4 Scale(const Vec3f& s);
+        inline static Matrix4x4 RotationX(float radians);
+        inline static Matrix4x4 RotationY(float radians);
+        inline static Matrix4x4 RotationZ(float radians);
+        /// Point: w = 1, so the translation column applies. Result w is 0.
+        inline Vec3f TransformPoint(const Vec3f& point) const;
+        /// Direction: w = 0, so translation is ignored. Use for normals.
+        inline Vec3f TransformDirection(const Vec3f& direction) const;
+
         //We decided to remove these 2 functions, as they would decrease the number or op / s way to much
         //float& operator()(std::size_t row, std::size_t column);                
         //const float& operator()(std::size_t row, std::size_t column) const;
@@ -40,7 +53,7 @@ namespace Maths
         inline Matrix4x4 operator*(const Matrix4x4& rhs) const;
         inline Vec4f operator*(const Vec4f& rhs) const;
         inline Matrix4x4 operator*(float scalar) const;
-        Matrix4x4& operator*=(const Matrix4x4& rhs);
+        inline Matrix4x4& operator*=(const Matrix4x4& rhs);
         //bool operator==(const Matrix4x4& rhs) const;
         //bool operator!=(const Matrix4x4& rhs) const;
         //Matrix4x4 Transpose() const;
@@ -58,10 +71,10 @@ namespace Maths
 
     inline Matrix4x4::Matrix4x4() : row()
     {
-        row[0] = _mm_setr_ps(1,0,0,0); // x = 1;
-        row[1] = _mm_setr_ps(0,1,0,0); // y = 1;
-        row[2] = _mm_setr_ps(0,0,1,0); // z = 1;
-        row[3] = _mm_setr_ps(0,0,0,1); // w = 1;
+        row[0] = _mm_setr_ps(1, 0, 0, 0); // x = 1;
+        row[1] = _mm_setr_ps(0, 1, 0, 0); // y = 1;
+        row[2] = _mm_setr_ps(0, 0, 1, 0); // z = 1;
+        row[3] = _mm_setr_ps(0, 0, 0, 1); // w = 1;
 
     }
 
@@ -168,6 +181,75 @@ namespace Maths
         *this = *this * rhs;
         return *this;
     }
+
+    inline Matrix4x4 Matrix4x4::Translation(float tx, float ty, float tz)
+    {
+        return Matrix4x4(_mm_setr_ps(1, 0, 0, tx),
+            _mm_setr_ps(0, 1, 0, ty),
+            _mm_setr_ps(0, 0, 1, tz),
+            _mm_setr_ps(0, 0, 0, 1));
+    }
+
+    inline Matrix4x4 Matrix4x4::Translation(const Vec3f& o)
+    {
+        return Translation(o.X(), o.Y(), o.Z());
+    }
+
+    inline Matrix4x4 Matrix4x4::Scale(float s)
+    {
+        return Scale(Vec3f(s, s, s));
+    }
+
+    inline Matrix4x4 Matrix4x4::Scale(const Vec3f& s)
+    {
+        return Matrix4x4(_mm_setr_ps(s.X(), 0, 0, 0),
+            _mm_setr_ps(0, s.Y(), 0, 0),
+            _mm_setr_ps(0, 0, s.Z(), 0),
+            _mm_setr_ps(0, 0, 0, 1));
+    }
+
+    // Standard math rotations. With y-up a positive angle is
+    // counter-clockwise; on a y-down framebuffer it looks clockwise.
+    inline Matrix4x4 Matrix4x4::RotationX(float a)
+    {
+        const float c = std::cos(a), s = std::sin(a);
+        return Matrix4x4(_mm_setr_ps(1, 0, 0, 0),
+            _mm_setr_ps(0, c, -s, 0),
+            _mm_setr_ps(0, s, c, 0),
+            _mm_setr_ps(0, 0, 0, 1));
+    }
+
+    inline Matrix4x4 Matrix4x4::RotationY(float a)
+    {
+        const float c = std::cos(a), s = std::sin(a);
+        return Matrix4x4(_mm_setr_ps(c, 0, s, 0),
+            _mm_setr_ps(0, 1, 0, 0),
+            _mm_setr_ps(-s, 0, c, 0),
+            _mm_setr_ps(0, 0, 0, 1));
+    }
+
+    inline Matrix4x4 Matrix4x4::RotationZ(float a)
+    {
+        const float c = std::cos(a), s = std::sin(a);
+        return Matrix4x4(_mm_setr_ps(c, -s, 0, 0),
+            _mm_setr_ps(s, c, 0, 0),
+            _mm_setr_ps(0, 0, 1, 0),
+            _mm_setr_ps(0, 0, 0, 1));
+    }
+
+    inline Vec3f Matrix4x4::TransformPoint(const Vec3f& p) const
+    {
+        const Vec4f v(_mm_blend_ps(p.reg, _mm_set1_ps(1.f), 0x8)); // w = 1
+        const Vec4f r = *this * v;
+        return Vec3f(_mm_blend_ps(r.reg, _mm_setzero_ps(), 0x8));   // keep Vec3f w = 0
+    }
+
+    inline Vec3f Matrix4x4::TransformDirection(const Vec3f& d) const
+    {
+        const Vec4f v(_mm_blend_ps(d.reg, _mm_setzero_ps(), 0x8));  // w = 0
+        const Vec4f r = *this * v;
+        return Vec3f(_mm_blend_ps(r.reg, _mm_setzero_ps(), 0x8));
+    }
     //template <std::floating_point T>
     //Matrix4x4<T>& Matrix4x4<T>::operator*=(const Matrix4x4& rhs)
     //{
@@ -200,9 +282,9 @@ namespace Maths
 
     inline Matrix4x4::Matrix4x4(const Vec4f& r0, const Vec4f& r1, const Vec4f& r2, const Vec4f& r3)
     {
-        row[0] = r0.reg; 
-        row[1] = r1.reg; 
-        row[2] = r2.reg; 
+        row[0] = r0.reg;
+        row[1] = r1.reg;
+        row[2] = r2.reg;
         row[3] = r3.reg;
     }
 
