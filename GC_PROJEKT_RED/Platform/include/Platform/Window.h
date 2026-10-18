@@ -4,8 +4,6 @@
 #include <vector>
 #include <algorithm>
 
-#include <math.h>
-
 #include "Maths.h"
 
 #include <stdint.h>
@@ -32,7 +30,7 @@ private:
     inline void put_triangle(int x0, int y0, uint32_t c0,
         int x1, int y1, uint32_t c1,
         int x2, int y2, uint32_t c2);
-    inline void clear(uint32_t color);    
+    inline void clear(uint32_t color);
         
     std::vector<uint32_t> framebuffer;
 };
