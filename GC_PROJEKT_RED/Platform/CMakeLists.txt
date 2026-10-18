@@ -11,6 +11,7 @@ target_sources(Platform
 target_include_directories(Platform
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/MathsLib
 )
 
 

@@ -6,6 +6,8 @@
 
 #include <math.h>
 
+#include "Maths.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -22,7 +24,6 @@ public:
 
 private:
     inline uint32_t rgb(uint8_t r, uint8_t g, uint8_t b);
-
     inline void put_pixel(int x, int y, uint32_t color);
     inline void put_line(int x0, int y0, int x1, int y1, uint32_t color);
     inline int edge(int ax, int ay, int bx, int by, int px, int py);
