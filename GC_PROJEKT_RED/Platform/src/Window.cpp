@@ -48,7 +48,7 @@ static inline uint32_t shade(int e0, int e1, int e2, int wsum,
     uint8_t b = (uint8_t)((e0 * (c0 & 0xFF)
         + e1 * (c1 & 0xFF)
         + e2 * (c2 & 0xFF)) / wsum);
-    return rgb(r, g, b);
+    return Window::rgb(r, g, b);
 }
 
 static void draw_triangle(int x0, int y0, uint32_t c0,
@@ -70,8 +70,8 @@ static void draw_triangle(int x0, int y0, uint32_t c0,
     int maxy = y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2);
     if (minx < 0) minx = 0;
     if (miny < 0) miny = 0;
-    if (maxx >= WIDTH)  maxx = WIDTH - 1;
-    if (maxy >= HEIGHT) maxy = HEIGHT - 1;
+    if (maxx >= Window::WIDTH)  maxx = Window::WIDTH - 1;
+    if (maxy >= Window::HEIGHT) maxy = Window::HEIGHT - 1;
 
     for (int y = miny; y <= maxy; y++) {
         for (int x = minx; x <= maxx; x++) {
@@ -79,7 +79,7 @@ static void draw_triangle(int x0, int y0, uint32_t c0,
             int e1 = edge(x2, y2, x0, y0, x, y);
             int e2 = edge(x0, y0, x1, y1, x, y);
             if ((e0 | e1 | e2) >= 0) {
-                framebuffer[y * WIDTH + x] =
+                framebuffer[static_cast<size_t>(y) * Window::WIDTH + x] =
                     shade(e0, e1, e2, area, c0, c1, c2);
             }
         }

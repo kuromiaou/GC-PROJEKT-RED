@@ -8,12 +8,14 @@ class Window
 public:
     static constexpr int WIDTH  = 800;
     static constexpr int HEIGHT = 600;
+    uint32_t rgb(uint8_t r, uint8_t g, uint8_t b);
 
     Window();
     int TestWindow();
 
 private:
-    uint32_t rgb(uint8_t r, uint8_t g, uint8_t b);
+
+
 
     void put_pixel(int x, int y, uint32_t color);
 
