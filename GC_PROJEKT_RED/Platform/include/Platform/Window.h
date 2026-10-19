@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <vector>
 
+
 class Window
 {
 public:
@@ -17,8 +18,6 @@ private:
     void put_pixel(int x, int y, uint32_t color);
 
     void put_line(int x0, int y0, int x1, int y1, uint32_t color);
-
-    void HandleButtonEvent(SDL_MouseButtonEvent& E);
 
     std::vector<uint32_t> framebuffer;
 };

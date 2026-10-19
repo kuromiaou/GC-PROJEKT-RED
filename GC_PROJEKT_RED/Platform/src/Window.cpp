@@ -15,9 +15,8 @@ void Window::put_pixel(int x, int y, uint32_t color)
     framebuffer[static_cast<size_t>(y) * WIDTH + x] = color;
 }
 
-void Window::put_line(int x, int y, uint32 color)
+void Window::put_line(int x0, int y0, int x1, int y1, uint32_t color)
 {
-    void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
         int dx = abs(x1 - x0);
         int dy = -abs(y1 - y0);             
         int sx = (x0 < x1) ? 1 : -1;
@@ -30,7 +29,7 @@ void Window::put_line(int x, int y, uint32 color)
             int e2 = 2 * err;
             if (e2 >= dy) { err += dy; x0 += sx; }   
             if (e2 <= dx) { err += dx; y0 += sy; }  
-        }
+        
     }
 }
 
@@ -38,9 +37,6 @@ static inline int edge(int ax, int ay, int bx, int by, int px, int py) {
     return (bx - ax) * (py - ay) - (by - ay) * (px - ax);
 }
 
-// Blend three corner colours by the barycentric weights e0, e1, e2.
-// wsum is the total triangle area (e0 + e1 + e2 for an inside pixel).
-// We blend each channel independently.
 static inline uint32_t shade(int e0, int e1, int e2, int wsum,
     uint32_t c0, uint32_t c1, uint32_t c2) {
     uint8_t r = (uint8_t)((e0 * ((c0 >> 16) & 0xFF)
@@ -55,16 +51,12 @@ static inline uint32_t shade(int e0, int e1, int e2, int wsum,
     return rgb(r, g, b);
 }
 
-// Filled triangle with per-corner colours interpolated via
-// barycentric coordinates. Pass the same colour three times for a
-// flat-shaded triangle. See chapter README section 3.9.
 static void draw_triangle(int x0, int y0, uint32_t c0,
     int x1, int y1, uint32_t c1,
     int x2, int y2, uint32_t c2) {
     int area = edge(x0, y0, x1, y1, x2, y2);
-    if (area == 0) return;                 // degenerate sliver
+    if (area == 0) return;                 
 
-    // Force one winding so "inside" means "all weights >= 0".
     if (area < 0) {
         int tx = x1; int ty = y1; uint32_t tc = c1;
         x1 = x2; y1 = y2; c1 = c2;
@@ -72,7 +64,6 @@ static void draw_triangle(int x0, int y0, uint32_t c0,
         area = -area;
     }
 
-    // Bounding box, clamped to the screen.
     int minx = x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
     int miny = y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
     int maxx = x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
@@ -87,7 +78,6 @@ static void draw_triangle(int x0, int y0, uint32_t c0,
             int e0 = edge(x1, y1, x2, y2, x, y);
             int e1 = edge(x2, y2, x0, y0, x, y);
             int e2 = edge(x0, y0, x1, y1, x, y);
-            // Inside iff all three weights are non-negative.
             if ((e0 | e1 | e2) >= 0) {
                 framebuffer[y * WIDTH + x] =
                     shade(e0, e1, e2, area, c0, c1, c2);
@@ -96,21 +86,21 @@ static void draw_triangle(int x0, int y0, uint32_t c0,
     }
 }
 
-int HandleButtonEvent(SDL_MouseButtonEvent& Event) {
-    if (Event.button == SDL_BUTTON_LEFT) {
-        return 1
-    }
-    else if (Event.button == SDL_BUTTON_RIGHT) {
-        return 2
-    }
-
-    if (
-        Event.button == SDL_BUTTON_LEFT &&
-        Event.down
-        ) {
-    }
-    return 0
-}
+//int HandleButtonEvent(SDL_MouseButtonEvent& Event) {
+//    //if (Event.button == SDL_BUTTON_LEFT) {
+//    //    return 1
+//    //}
+//    //else if (Event.button == SDL_BUTTON_RIGHT) {
+//    //    return 2
+//    //}
+//
+//    //if (
+//    //    Event.button == SDL_BUTTON_LEFT &&
+//    //    Event.down
+//    //    ) {
+//    //}
+//    //return 0;
+//}
 
 int Window::TestWindow()
 {
@@ -149,20 +139,40 @@ int Window::TestWindow()
     bool running = true;
     while (running) {
         SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_EVENT_QUIT) running = false;
-            if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)
-                running = false;
-        }
-        for (int x = 0; x < WIDTH; x++) {
-            put_pixel(x, 300, rgb(255, 64, 0));
-        }
+
+        //=======================================================================================================================================================
+
+        //while (SDL_PollEvent(&e)) {
+        //    if (e.type == SDL_EVENT_QUIT) running = false;
+        //    if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)
+        //        running = false;
+        //}
+        //for (int x = 0; x < WIDTH; x++) {
+        //    put_pixel(x, 300, rgb(255, 64, 0));
+        //}
+
+        //=======================================================================================================================================================
+
+        draw_triangle(150, 480, rgb(255, 0, 0),
+            400, 80, rgb(0, 255, 0),
+            650, 480, rgb(0, 0, 255));
+
+        draw_triangle(60, 60, rgb(240, 240, 240),
+            200, 60, rgb(240, 240, 240),
+            130, 170, rgb(240, 240, 240));
+
+        put_line(150, 480, 400, 80, rgb(255, 255, 255));
+        put_line(400, 80, 650, 480, rgb(255, 255, 255));
+        put_line(650, 480, 150, 480, rgb(255, 255, 255));
+
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
         SDL_RenderClear(renderer);
         SDL_RenderTexture(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
 
+    //=======================================================================================================================================================
+    
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
