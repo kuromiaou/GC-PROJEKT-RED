@@ -34,6 +34,68 @@ void Window::put_line(int x, int y, uint32 color)
     }
 }
 
+static inline int edge(int ax, int ay, int bx, int by, int px, int py) {
+    return (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+}
+
+// Blend three corner colours by the barycentric weights e0, e1, e2.
+// wsum is the total triangle area (e0 + e1 + e2 for an inside pixel).
+// We blend each channel independently.
+static inline uint32_t shade(int e0, int e1, int e2, int wsum,
+    uint32_t c0, uint32_t c1, uint32_t c2) {
+    uint8_t r = (uint8_t)((e0 * ((c0 >> 16) & 0xFF)
+        + e1 * ((c1 >> 16) & 0xFF)
+        + e2 * ((c2 >> 16) & 0xFF)) / wsum);
+    uint8_t g = (uint8_t)((e0 * ((c0 >> 8) & 0xFF)
+        + e1 * ((c1 >> 8) & 0xFF)
+        + e2 * ((c2 >> 8) & 0xFF)) / wsum);
+    uint8_t b = (uint8_t)((e0 * (c0 & 0xFF)
+        + e1 * (c1 & 0xFF)
+        + e2 * (c2 & 0xFF)) / wsum);
+    return rgb(r, g, b);
+}
+
+// Filled triangle with per-corner colours interpolated via
+// barycentric coordinates. Pass the same colour three times for a
+// flat-shaded triangle. See chapter README section 3.9.
+static void draw_triangle(int x0, int y0, uint32_t c0,
+    int x1, int y1, uint32_t c1,
+    int x2, int y2, uint32_t c2) {
+    int area = edge(x0, y0, x1, y1, x2, y2);
+    if (area == 0) return;                 // degenerate sliver
+
+    // Force one winding so "inside" means "all weights >= 0".
+    if (area < 0) {
+        int tx = x1; int ty = y1; uint32_t tc = c1;
+        x1 = x2; y1 = y2; c1 = c2;
+        x2 = tx; y2 = ty; c2 = tc;
+        area = -area;
+    }
+
+    // Bounding box, clamped to the screen.
+    int minx = x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
+    int miny = y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
+    int maxx = x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
+    int maxy = y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2);
+    if (minx < 0) minx = 0;
+    if (miny < 0) miny = 0;
+    if (maxx >= WIDTH)  maxx = WIDTH - 1;
+    if (maxy >= HEIGHT) maxy = HEIGHT - 1;
+
+    for (int y = miny; y <= maxy; y++) {
+        for (int x = minx; x <= maxx; x++) {
+            int e0 = edge(x1, y1, x2, y2, x, y);
+            int e1 = edge(x2, y2, x0, y0, x, y);
+            int e2 = edge(x0, y0, x1, y1, x, y);
+            // Inside iff all three weights are non-negative.
+            if ((e0 | e1 | e2) >= 0) {
+                framebuffer[y * WIDTH + x] =
+                    shade(e0, e1, e2, area, c0, c1, c2);
+            }
+        }
+    }
+}
+
 int HandleButtonEvent(SDL_MouseButtonEvent& Event) {
     if (Event.button == SDL_BUTTON_LEFT) {
         return 1
