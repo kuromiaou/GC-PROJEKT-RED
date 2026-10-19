@@ -109,7 +109,7 @@ void Window::clear(uint32_t color) {
     std::fill(framebuffer.begin(), framebuffer.end(), color);
 }
 
-static const vec3 CUBE_VERTS[8] = {
+static const Maths::Vec3f CUBE_VERTS[8] = {
     {-1, -1, -1}, { 1, -1, -1}, { 1,  1, -1}, {-1,  1, -1},
     {-1, -1,  1}, { 1, -1,  1}, { 1,  1,  1}, {-1,  1,  1},
 };
