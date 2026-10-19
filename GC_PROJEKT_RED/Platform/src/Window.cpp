@@ -109,16 +109,7 @@ void Window::clear(uint32_t color) {
     std::fill(framebuffer.begin(), framebuffer.end(), color);
 }
 
-static const Maths::Vec3f CUBE_VERTS[8] = {
-    {-1, -1, -1}, { 1, -1, -1}, { 1,  1, -1}, {-1,  1, -1},
-    {-1, -1,  1}, { 1, -1,  1}, { 1,  1,  1}, {-1,  1,  1},
-};
 
-static const int CUBE_EDGES[12][3] = {
-    {0,1,0}, {3,2,0}, {7,6,0}, {4,5,0},   // edges along x
-    {0,3,1}, {1,2,1}, {5,6,1}, {4,7,1},   // edges along y
-    {0,4,2}, {1,5,2}, {2,6,2}, {3,7,2},   // edges along z
-};
 // Chapter 04: spin an equilateral triangle with a rotation matrix.
 int Window::TestWindow()
 {
@@ -148,7 +139,9 @@ int Window::TestWindow()
         SDL_Quit();
         return 1;
     }
-
+    // ---------------------------------------------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------------------------------------------------
+    
     // Equilateral triangle around the origin: three points 120 degrees
     // apart on a circle of radius R, starting at the top.
     constexpr float PI = 3.14159265358979323846f;
@@ -168,6 +161,10 @@ int Window::TestWindow()
     int    fpsCount = 0;
     char   title[160];
 
+    // ---------------------------------------------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------------------------------------------------
+
+
     bool running = true;
     SDL_Event e;
     while (running) {
@@ -176,13 +173,13 @@ int Window::TestWindow()
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE) running = false;
         }
 
-        // 1 radian per second.
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+        
         const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / static_cast<double>(freq);
         const float angle = static_cast<float>(seconds);
 
-        // (A * B) applies B first: rotate about the origin, THEN move to
-        // the screen centre. A positive angle looks clockwise because the
-        // framebuffer is y-down (README 4.8).
+
         const Maths::Matrix4x4 transform =
             Maths::Matrix4x4::Translation(WIDTH / 2.0f, HEIGHT / 2.0f, 0.0f) *
             Maths::Matrix4x4::RotationZ(angle);
@@ -195,6 +192,10 @@ int Window::TestWindow()
         }
 
         clear(rgb(16, 16, 24));
+
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+
 
         put_circle(WIDTH / 2, HEIGHT / 2, static_cast<int>(R), rgb(60, 60, 80));
         put_triangle(px[0], py[0], cornerColor[0],
@@ -209,6 +210,9 @@ int Window::TestWindow()
         SDL_RenderTexture(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
 
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+
         const Uint64 now = SDL_GetPerformanceCounter();
         fpsAccum += static_cast<double>(now - last) / static_cast<double>(freq);
         last = now;
@@ -222,6 +226,9 @@ int Window::TestWindow()
             fpsAccum = 0.0;
             fpsCount = 0;
         }
+    // ---------------------------------------------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------------------------------------------------
+
     }
 
     SDL_DestroyTexture(texture);

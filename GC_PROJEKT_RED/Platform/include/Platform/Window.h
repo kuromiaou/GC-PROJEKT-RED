@@ -16,6 +16,16 @@ class Window
 public:
     static constexpr int WIDTH  = 800;
     static constexpr int HEIGHT = 600;
+    const Maths::Vec3f CUBE_VERTS[8] = {
+    {-1, -1, -1}, { 1, -1, -1}, { 1,  1, -1}, {-1,  1, -1},
+    {-1, -1,  1}, { 1, -1,  1}, { 1,  1,  1}, {-1,  1,  1},
+    };
+
+    const int CUBE_EDGES[12][3] = {
+        {0,1,0}, {3,2,0}, {7,6,0}, {4,5,0},   // edges along x
+        {0,3,1}, {1,2,1}, {5,6,1}, {4,7,1},   // edges along y
+        {0,4,2}, {1,5,2}, {2,6,2}, {3,7,2},   // edges along z
+    };
 
     Window();
     int TestWindow();
