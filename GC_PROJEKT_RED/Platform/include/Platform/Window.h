@@ -15,7 +15,7 @@ public:
 
 private:
 
-
+    
 
     void put_pixel(int x, int y, uint32_t color);
 

@@ -79,7 +79,7 @@ static void draw_triangle(int x0, int y0, uint32_t c0,
             int e1 = edge(x2, y2, x0, y0, x, y);
             int e2 = edge(x0, y0, x1, y1, x, y);
             if ((e0 | e1 | e2) >= 0) {
-                framebuffer[static_cast<size_t>(y) * Window::WIDTH + x] =
+                framebuffer[y * Window::WIDTH + x] =
                     shade(e0, e1, e2, area, c0, c1, c2);
             }
         }
