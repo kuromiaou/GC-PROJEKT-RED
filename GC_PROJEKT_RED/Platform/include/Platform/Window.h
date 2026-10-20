@@ -14,7 +14,7 @@
 class Window
 {
 public:
-    static constexpr int WIDTH  = 800;
+    static constexpr int WIDTH = 800;
     static constexpr int HEIGHT = 600;
     const Maths::Vec3f CUBE_VERTS[8] = {
     {-1, -1, -1}, { 1, -1, -1}, { 1,  1, -1}, {-1,  1, -1},
@@ -42,6 +42,12 @@ private:
         int x2, int y2, uint32_t c2);
     inline void put_circle(int cx, int cy, int r, uint32_t color);
     inline void clear(uint32_t color);
-        
+    inline void clear_zbuffer();
+    inline void put_triangle_z(int x0, int y0, float z0,
+        int x1, int y1, float z1,
+        int x2, int y2, float z2,
+        float zmin, float zrange, bool useZBuffer);
+
     std::vector<uint32_t> framebuffer;
+    std::vector<float>    zbuffer; 
 };

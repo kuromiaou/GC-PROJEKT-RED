@@ -6,13 +6,13 @@
 #include <cstdio>
 #include <string>
 
-// Provided by CMake (target_compile_definitions) so spot.obj is found from any cwd.
 #ifndef WARP_ASSET_DIR
 #define WARP_ASSET_DIR "assets"
 #endif
 
 Window::Window()
     : framebuffer(static_cast<size_t>(WIDTH)* HEIGHT)
+    , zbuffer(static_cast<size_t>(WIDTH)* HEIGHT)
 {}
 inline uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
@@ -58,9 +58,7 @@ inline void Window::put_triangle(int x0, int y0, uint32_t c0,
     int x1, int y1, uint32_t c1,
     int x2, int y2, uint32_t c2) {
     int area = edge(x0, y0, x1, y1, x2, y2);
-    if (area == 0) return;                 // degenerate sliver
-
-    // Force one winding so "inside" means "all weights >= 0".
+    if (area == 0) return;
     if (area < 0) {
         int tx = x1; int ty = y1; uint32_t tc = c1;
         x1 = x2; y1 = y2; c1 = c2;
@@ -68,7 +66,6 @@ inline void Window::put_triangle(int x0, int y0, uint32_t c0,
         area = -area;
     }
 
-    // Bounding box, clamped to the screen.
     int minx = x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
     int miny = y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
     int maxx = x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
@@ -83,7 +80,6 @@ inline void Window::put_triangle(int x0, int y0, uint32_t c0,
             int e0 = edge(x1, y1, x2, y2, x, y);
             int e1 = edge(x2, y2, x0, y0, x, y);
             int e2 = edge(x0, y0, x1, y1, x, y);
-            // Inside iff all three weights are non-negative.
             if ((e0 | e1 | e2) >= 0) {
                 framebuffer[static_cast<size_t>(y) * WIDTH + x] =
                     shade(e0, e1, e2, area, c0, c1, c2);
@@ -92,8 +88,6 @@ inline void Window::put_triangle(int x0, int y0, uint32_t c0,
     }
 }
 
-// Integer midpoint circle (Appendix B.4): no sin/cos/sqrt, just adds and
-// the circle's 8-fold symmetry. `d` plays the role of Bresenham's error term.
 void Window::put_circle(int cx, int cy, int r, uint32_t color) {
     int x = 0;
     int y = r;
@@ -117,15 +111,58 @@ void Window::clear(uint32_t color) {
     std::fill(framebuffer.begin(), framebuffer.end(), color);
 }
 
+void Window::clear_zbuffer() {
+    std::fill(zbuffer.begin(), zbuffer.end(), 1e30f);
+}
 
-// Chapter 06: load spot.obj and spin it as a depth-shaded wireframe.
+void Window::put_triangle_z(int x0, int y0, float z0,
+    int x1, int y1, float z1,
+    int x2, int y2, float z2,
+    float zmin, float zrange, bool useZBuffer) {
+    int area = edge(x0, y0, x1, y1, x2, y2);
+    if (area == 0) return;               
+
+
+    if (area < 0) {
+        std::swap(x1, x2); std::swap(y1, y2); std::swap(z1, z2);
+        area = -area;
+    }
+
+    const int minx = std::clamp(std::min({ x0, x1, x2 }), 0, WIDTH - 1);
+    const int miny = std::clamp(std::min({ y0, y1, y2 }), 0, HEIGHT - 1);
+    const int maxx = std::clamp(std::max({ x0, x1, x2 }), 0, WIDTH - 1);
+    const int maxy = std::clamp(std::max({ y0, y1, y2 }), 0, HEIGHT - 1);
+
+    const float invArea = 1.0f / static_cast<float>(area);
+
+    for (int y = miny; y <= maxy; y++) {
+        for (int x = minx; x <= maxx; x++) {
+            const int e0 = edge(x1, y1, x2, y2, x, y);
+            const int e1 = edge(x2, y2, x0, y0, x, y);
+            const int e2 = edge(x0, y0, x1, y1, x, y);
+            if ((e0 | e1 | e2) < 0) continue;     
+            const float z = (e0 * z0 + e1 * z1 + e2 * z2) * invArea;
+
+            const size_t idx = static_cast<size_t>(y) * WIDTH + x;
+            if (useZBuffer) {
+                if (z >= zbuffer[idx]) continue;
+                zbuffer[idx] = z;
+            }
+            const float far01 = (z - zmin) / zrange;                  
+            const int level = std::clamp(240 - static_cast<int>(far01 * 200.0f), 0, 255);
+            framebuffer[idx] = rgb((uint8_t)level, (uint8_t)level, (uint8_t)level);
+        }
+    }
+}
+
+
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 06 - Meshes", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 07 - Z-buffer", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -147,9 +184,10 @@ int Window::TestWindow()
         SDL_Quit();
         return 1;
     }
+
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
-    // ---- Load the mesh (parsing lives in Mesh::Load) ----
+
     Mesh mesh;
     if (!mesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) {
         SDL_DestroyTexture(texture);
@@ -166,17 +204,14 @@ int Window::TestWindow()
     const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(
         Maths::Matrix4x4::radians(50.0f), aspect, zNear, 100.0f);
 
-    // Camera 3 units back looking at the origin, +Y up. Spot is ~1 unit tall.
     const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
         Maths::Vec3f(0, 0, 3), Maths::Vec3f(0, 0, 0), Maths::Vec3f(0, 1, 0));
 
-    // Per-vertex scratch buffers, allocated once (not per frame).
     const size_t nv = mesh.verts.size();
     std::vector<int>   screenX(nv), screenY(nv);
-    std::vector<float> camDepth(nv);
+    std::vector<float> ndcZ(nv);
     std::vector<char>  visible(nv);
-
-    // FPS counter (chapter 2): refreshed once per second.
+    bool useZBuffer = true;   
     const Uint64 freq = SDL_GetPerformanceFrequency();
     const Uint64 start = SDL_GetPerformanceCounter();
     Uint64 last = start;
@@ -187,13 +222,13 @@ int Window::TestWindow()
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
-
     bool running = true;
     SDL_Event e;
     while (running) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) running = false;
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE) running = false;
+            if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_Z) useZBuffer = !useZBuffer;
         }
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -206,9 +241,7 @@ int Window::TestWindow()
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
-        // Project every vertex once. Depth = clip.w (camera-space distance),
-        // which varies linearly - NDC z is hyperbolic and nearly flat here.
-        float dmin = 1e30f, dmax = -1e30f;
+        float zmin = 1e30f, zmax = -1e30f;
         for (size_t i = 0; i < nv; i++) {
             const Maths::Vec3f v = mesh.verts[i];
             const Maths::Vec4f clip = mvp * Maths::Vec4f(v.X(), v.Y(), v.Z(), 1.0f);
@@ -217,18 +250,19 @@ int Window::TestWindow()
             if (c[3] <= zNear) { visible[i] = 0; continue; }
             const float ndcX = c[0] / c[3];
             const float ndcY = c[1] / c[3];
+            const float nz = c[2] / c[3];
             screenX[i] = static_cast<int>((ndcX + 1.0f) * 0.5f * WIDTH);
             screenY[i] = static_cast<int>((1.0f - (ndcY + 1.0f) * 0.5f) * HEIGHT); // screen Y points down
-            camDepth[i] = c[3];
+            ndcZ[i] = nz;
             visible[i] = 1;
-            dmin = std::min(dmin, c[3]);
-            dmax = std::max(dmax, c[3]);
+            zmin = std::min(zmin, nz);
+            zmax = std::max(zmax, nz);
         }
-        const float drange = (dmax > dmin) ? (dmax - dmin) : 1.0f;
+        const float zrange = (zmax > zmin) ? (zmax - zmin) : 1.0f;
 
         clear(rgb(16, 16, 24));
+        clear_zbuffer();
 
-        // Each triangle's 3 edges, grey-shaded by depth (near bright, far dim).
         const int faceCount = mesh.FaceCount();
         for (int f = 0; f < faceCount; f++) {
             const int a = mesh.faces[f * 3 + 0];
@@ -237,14 +271,10 @@ int Window::TestWindow()
             if (a < 0 || b < 0 || c < 0 || a >= (int)nv || b >= (int)nv || c >= (int)nv) continue; // bad OBJ index
             if (!visible[a] || !visible[b] || !visible[c]) continue;
 
-            const float avg = (camDepth[a] + camDepth[b] + camDepth[c]) / 3.0f;
-            const float far01 = (avg - dmin) / drange;
-            const int level = std::clamp(240 - static_cast<int>(far01 * 200.0f), 0, 255);
-            const uint32_t col = rgb((uint8_t)level, (uint8_t)level, (uint8_t)level);
-
-            put_line(screenX[a], screenY[a], screenX[b], screenY[b], col);
-            put_line(screenX[b], screenY[b], screenX[c], screenY[c], col);
-            put_line(screenX[c], screenY[c], screenX[a], screenY[a], col);
+            put_triangle_z(screenX[a], screenY[a], ndcZ[a],
+                screenX[b], screenY[b], ndcZ[b],
+                screenX[c], screenY[c], ndcZ[c],
+                zmin, zrange, useZBuffer);
         }
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
@@ -263,7 +293,8 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 06 - Meshes  |  %d tris  |  %.1f FPS  (%.2f ms/frame)", mesh.FaceCount(), fps, ms);
+                "Chapter 07 - Z-buffer %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
+                useZBuffer ? "ON" : "OFF", mesh.FaceCount(), fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
             fpsCount = 0;
