@@ -1,7 +1,15 @@
 #include "Platform/Window.h"
+#include "Platform/Obj.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
 #include <cmath>
+#include <cstdio>
+#include <string>
+
+// Provided by CMake (target_compile_definitions) so spot.obj is found from any cwd.
+#ifndef WARP_ASSET_DIR
+#define WARP_ASSET_DIR "assets"
+#endif
 
 Window::Window()
     : framebuffer(static_cast<size_t>(WIDTH)* HEIGHT)
@@ -110,14 +118,14 @@ void Window::clear(uint32_t color) {
 }
 
 
-// Chapter 05: spin a wireframe cube through a perspective projection.
+// Chapter 06: load spot.obj and spin it as a depth-shaded wireframe.
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 05 - Perspective", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 06 - Meshes", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -141,16 +149,32 @@ int Window::TestWindow()
     }
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
-    uint32_t axis_color[3];
-    axis_color[0] = rgb(230, 80, 80);   // x : red
-    axis_color[1] = rgb(80, 210, 90);   // y : green
-    axis_color[2] = rgb(90, 140, 240);   // z : blue
+    // ---- Load the mesh (parsing lives in Mesh::Load) ----
+    Mesh mesh;
+    if (!mesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    std::printf("loaded spot.obj: %d vertices, %d faces\n", mesh.VertexCount(), mesh.FaceCount());
 
     const float aspect = (float)WIDTH / (float)HEIGHT;
     const float zNear = 0.1f;
 
     const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(
-        Maths::Matrix4x4::radians(60.0f), aspect, zNear, 100.0f);
+        Maths::Matrix4x4::radians(50.0f), aspect, zNear, 100.0f);
+
+    // Camera 3 units back looking at the origin, +Y up. Spot is ~1 unit tall.
+    const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
+        Maths::Vec3f(0, 0, 3), Maths::Vec3f(0, 0, 0), Maths::Vec3f(0, 1, 0));
+
+    // Per-vertex scratch buffers, allocated once (not per frame).
+    const size_t nv = mesh.verts.size();
+    std::vector<int>   screenX(nv), screenY(nv);
+    std::vector<float> camDepth(nv);
+    std::vector<char>  visible(nv);
 
     // FPS counter (chapter 2): refreshed once per second.
     const Uint64 freq = SDL_GetPerformanceFrequency();
@@ -179,45 +203,48 @@ int Window::TestWindow()
         const float angle = static_cast<float>(seconds);
 
 
-        // Model: spin the cube on two axes, then push it 5 units in front of the
-        // camera (camera sits at the origin looking down -Z, right-handed).
-        const Maths::Matrix4x4 model =
-            Maths::Matrix4x4::Translation(0.0f, 0.0f, -5.0f) *
-            Maths::Matrix4x4::RotationY(angle) *
-            Maths::Matrix4x4::RotationX(angle * 0.7f);
-        const Maths::Matrix4x4 mvp = projection * model;
+        const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
+        const Maths::Matrix4x4 mvp = projection * (view * model);
 
-        // Project the 8 corners: clip -> divide by w -> NDC -> pixels.
-        int   sx[8], sy[8];
-        bool  visible[8];
-        for (int i = 0; i < 8; i++) {
-            const Maths::Vec3f v = CUBE_VERTS[i];
+        // Project every vertex once. Depth = clip.w (camera-space distance),
+        // which varies linearly - NDC z is hyperbolic and nearly flat here.
+        float dmin = 1e30f, dmax = -1e30f;
+        for (size_t i = 0; i < nv; i++) {
+            const Maths::Vec3f v = mesh.verts[i];
             const Maths::Vec4f clip = mvp * Maths::Vec4f(v.X(), v.Y(), v.Z(), 1.0f);
-
             float c[4];
             _mm_storeu_ps(c, clip.reg);       // c = {x, y, z, w}
-
-            // w is the camera depth. Behind (or on) the near plane there is nothing
-            // sensible to divide by, so mark the corner as not drawable.
-            visible[i] = c[3] > zNear;
-            if (!visible[i]) { sx[i] = sy[i] = 0; continue; }
-
+            if (c[3] <= zNear) { visible[i] = 0; continue; }
             const float ndcX = c[0] / c[3];
             const float ndcY = c[1] / c[3];
-            sx[i] = static_cast<int>((ndcX * 0.5f + 0.5f) * WIDTH);
-            sy[i] = static_cast<int>((1.0f - (ndcY * 0.5f + 0.5f)) * HEIGHT); // flip Y: screen Y points down
+            screenX[i] = static_cast<int>((ndcX + 1.0f) * 0.5f * WIDTH);
+            screenY[i] = static_cast<int>((1.0f - (ndcY + 1.0f) * 0.5f) * HEIGHT); // screen Y points down
+            camDepth[i] = c[3];
+            visible[i] = 1;
+            dmin = std::min(dmin, c[3]);
+            dmax = std::max(dmax, c[3]);
         }
+        const float drange = (dmax > dmin) ? (dmax - dmin) : 1.0f;
 
         clear(rgb(16, 16, 24));
 
-        // ---------------------------------------------------------------------------------------------------------------------------------------
-        // ---------------------------------------------------------------------------------------------------------------------------------------
+        // Each triangle's 3 edges, grey-shaded by depth (near bright, far dim).
+        const int faceCount = mesh.FaceCount();
+        for (int f = 0; f < faceCount; f++) {
+            const int a = mesh.faces[f * 3 + 0];
+            const int b = mesh.faces[f * 3 + 1];
+            const int c = mesh.faces[f * 3 + 2];
+            if (a < 0 || b < 0 || c < 0 || a >= (int)nv || b >= (int)nv || c >= (int)nv) continue; // bad OBJ index
+            if (!visible[a] || !visible[b] || !visible[c]) continue;
 
-        for (int i = 0; i < 12; i++) {
-            const int a = CUBE_EDGES[i][0];
-            const int b = CUBE_EDGES[i][1];
-            if (!visible[a] || !visible[b]) continue;
-            put_line(sx[a], sy[a], sx[b], sy[b], axis_color[CUBE_EDGES[i][2]]);
+            const float avg = (camDepth[a] + camDepth[b] + camDepth[c]) / 3.0f;
+            const float far01 = (avg - dmin) / drange;
+            const int level = std::clamp(240 - static_cast<int>(far01 * 200.0f), 0, 255);
+            const uint32_t col = rgb((uint8_t)level, (uint8_t)level, (uint8_t)level);
+
+            put_line(screenX[a], screenY[a], screenX[b], screenY[b], col);
+            put_line(screenX[b], screenY[b], screenX[c], screenY[c], col);
+            put_line(screenX[c], screenY[c], screenX[a], screenY[a], col);
         }
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
@@ -236,11 +263,12 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 05 - Perspective  |  %.1f FPS  (%.2f ms/frame)", fps, ms);
+                "Chapter 06 - Meshes  |  %d tris  |  %.1f FPS  (%.2f ms/frame)", mesh.FaceCount(), fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
             fpsCount = 0;
         }
+
         // ---------------------------------------------------------------------------------------------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------------------------------------
 

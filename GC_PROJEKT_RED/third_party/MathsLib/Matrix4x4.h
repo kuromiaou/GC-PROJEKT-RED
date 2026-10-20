@@ -54,6 +54,8 @@ namespace Maths
         //const float& operator()(std::size_t row, std::size_t column) const;
         inline static float radians(float degrees);
         inline static Matrix4x4 perspective(float fov_y_radians, float aspect, float zNear, float zFar);
+        /// View matrix: camera at eye looking at target (camera looks down its own -Z).
+        inline static Matrix4x4 LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up);
 
         inline Matrix4x4 operator+(const Matrix4x4& rhs) const;
         inline Matrix4x4 operator-(const Matrix4x4& rhs) const;
@@ -98,6 +100,20 @@ namespace Maths
         return result;
     }
 
+
+    inline Matrix4x4 Matrix4x4::LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up)
+    {
+        const Vec3f forward = (eye - target).Normalize();   // camera +Z (it looks down -Z)
+        const Vec3f right = up.Cross(forward).Normalize(); // camera +X
+        const Vec3f camUp = forward.Cross(right);          // camera +Y
+
+        // Rows are the camera axes; last column moves the eye to the origin.
+        return Matrix4x4(
+            _mm_setr_ps(right.X(), right.Y(), right.Z(), -right.Dot(eye)),
+            _mm_setr_ps(camUp.X(), camUp.Y(), camUp.Z(), -camUp.Dot(eye)),
+            _mm_setr_ps(forward.X(), forward.Y(), forward.Z(), -forward.Dot(eye)),
+            _mm_setr_ps(0, 0, 0, 1));
+    }
 
     inline Matrix4x4::Matrix4x4() : row()
     {
