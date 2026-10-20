@@ -110,14 +110,14 @@ void Window::clear(uint32_t color) {
 }
 
 
-// Chapter 04: spin an equilateral triangle with a rotation matrix.
+// Chapter 05: spin a wireframe cube through a perspective projection.
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 04 - Vectors & matrices", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 05 - Perspective", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -141,17 +141,16 @@ int Window::TestWindow()
     }
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
-    
-    // Equilateral triangle around the origin: three points 120 degrees
-    // apart on a circle of radius R, starting at the top.
-    constexpr float PI = 3.14159265358979323846f;
-    constexpr float R = 200.0f;
-    Maths::Vec3f base[3];
-    for (int i = 0; i < 3; i++) {
-        const float a = static_cast<float>(i) / 3.0f * 2.0f * PI - PI / 2.0f;
-        base[i] = Maths::Vec3f(R * std::cos(a), R * std::sin(a), 0.0f);
-    }
-    const uint32_t cornerColor[3] = { rgb(255, 60, 60), rgb(60, 255, 60), rgb(60, 60, 255) };
+    uint32_t axis_color[3];
+    axis_color[0] = rgb(230, 80, 80);   // x : red
+    axis_color[1] = rgb(80, 210, 90);   // y : green
+    axis_color[2] = rgb(90, 140, 240);   // z : blue
+
+    const float aspect = (float)WIDTH / (float)HEIGHT;
+    const float zNear = 0.1f;
+
+    const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(
+        Maths::Matrix4x4::radians(60.0f), aspect, zNear, 100.0f);
 
     // FPS counter (chapter 2): refreshed once per second.
     const Uint64 freq = SDL_GetPerformanceFrequency();
@@ -175,20 +174,38 @@ int Window::TestWindow()
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------------------------------------
-        
+
         const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / static_cast<double>(freq);
         const float angle = static_cast<float>(seconds);
 
 
-        const Maths::Matrix4x4 transform =
-            Maths::Matrix4x4::Translation(WIDTH / 2.0f, HEIGHT / 2.0f, 0.0f) *
-            Maths::Matrix4x4::RotationZ(angle);
+        // Model: spin the cube on two axes, then push it 5 units in front of the
+        // camera (camera sits at the origin looking down -Z, right-handed).
+        const Maths::Matrix4x4 model =
+            Maths::Matrix4x4::Translation(0.0f, 0.0f, -5.0f) *
+            Maths::Matrix4x4::RotationY(angle) *
+            Maths::Matrix4x4::RotationX(angle * 0.7f);
+        const Maths::Matrix4x4 mvp = projection * model;
 
-        int px[3], py[3];
-        for (int i = 0; i < 3; i++) {
-            const Maths::Vec3f p = transform.TransformPoint(base[i]);
-            px[i] = static_cast<int>(p.X());
-            py[i] = static_cast<int>(p.Y());
+        // Project the 8 corners: clip -> divide by w -> NDC -> pixels.
+        int   sx[8], sy[8];
+        bool  visible[8];
+        for (int i = 0; i < 8; i++) {
+            const Maths::Vec3f v = CUBE_VERTS[i];
+            const Maths::Vec4f clip = mvp * Maths::Vec4f(v.X(), v.Y(), v.Z(), 1.0f);
+
+            float c[4];
+            _mm_storeu_ps(c, clip.reg);       // c = {x, y, z, w}
+
+            // w is the camera depth. Behind (or on) the near plane there is nothing
+            // sensible to divide by, so mark the corner as not drawable.
+            visible[i] = c[3] > zNear;
+            if (!visible[i]) { sx[i] = sy[i] = 0; continue; }
+
+            const float ndcX = c[0] / c[3];
+            const float ndcY = c[1] / c[3];
+            sx[i] = static_cast<int>((ndcX * 0.5f + 0.5f) * WIDTH);
+            sy[i] = static_cast<int>((1.0f - (ndcY * 0.5f + 0.5f)) * HEIGHT); // flip Y: screen Y points down
         }
 
         clear(rgb(16, 16, 24));
@@ -196,14 +213,12 @@ int Window::TestWindow()
         // ---------------------------------------------------------------------------------------------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------------------------------------
 
-
-        put_circle(WIDTH / 2, HEIGHT / 2, static_cast<int>(R), rgb(60, 60, 80));
-        put_triangle(px[0], py[0], cornerColor[0],
-            px[1], py[1], cornerColor[1],
-            px[2], py[2], cornerColor[2]);
-        put_line(px[0], py[0], px[1], py[1], rgb(255, 255, 255));
-        put_line(px[1], py[1], px[2], py[2], rgb(255, 255, 255));
-        put_line(px[2], py[2], px[0], py[0], rgb(255, 255, 255));
+        for (int i = 0; i < 12; i++) {
+            const int a = CUBE_EDGES[i][0];
+            const int b = CUBE_EDGES[i][1];
+            if (!visible[a] || !visible[b]) continue;
+            put_line(sx[a], sy[a], sx[b], sy[b], axis_color[CUBE_EDGES[i][2]]);
+        }
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
         SDL_RenderClear(renderer);
@@ -221,13 +236,13 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 04 - Vectors & matrices  |  %.1f FPS  (%.2f ms/frame)", fps, ms);
+                "Chapter 05 - Perspective  |  %.1f FPS  (%.2f ms/frame)", fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
             fpsCount = 0;
         }
-    // ---------------------------------------------------------------------------------------------------------------------------------------
-    // ---------------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------------------------
 
     }
 

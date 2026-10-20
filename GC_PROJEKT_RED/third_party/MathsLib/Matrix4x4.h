@@ -7,6 +7,11 @@
 #include <array>
 #include <limits>
 #include <utility>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
 
 namespace Maths
 {
@@ -47,6 +52,8 @@ namespace Maths
         //We decided to remove these 2 functions, as they would decrease the number or op / s way to much
         //float& operator()(std::size_t row, std::size_t column);                
         //const float& operator()(std::size_t row, std::size_t column) const;
+        inline static float radians(float degrees);
+        inline static Matrix4x4 perspective(float fov_y_radians, float aspect, float zNear, float zFar);
 
         inline Matrix4x4 operator+(const Matrix4x4& rhs) const;
         inline Matrix4x4 operator-(const Matrix4x4& rhs) const;
@@ -68,6 +75,29 @@ namespace Maths
         //Vec3f TransformPoint(const Vec3f& point) const; // Affine only, w = 1.
         //Vec3f TransformDirection(const Vec3f& direction) const; // Affine only, w = 0.
     };
+
+    inline float Matrix4x4::radians(float degrees) {
+        return degrees * 3.14159265358979323846f / 180.0f;
+    }
+
+    inline Matrix4x4 Matrix4x4::perspective(float fov_y_radians, float aspect, float zNear, float zFar)
+    {
+        float y_scale = 1.0f / tanf(fov_y_radians * 0.5f);
+        float x_scale = y_scale / aspect;   // x also corrected for the window shape
+
+        // Depth-remap coefficients (so zNear -> -1, zFar -> +1 after the divide).
+        float z_map_a = (zFar + zNear) / (zNear - zFar);
+        float z_map_b = (2.0f * zFar * zNear) / (zNear - zFar);
+
+        Matrix4x4 result = Zero();
+
+        result.row[0] = _mm_setr_ps(x_scale, 0, 0, 0);
+        result.row[1] = _mm_setr_ps(0, y_scale, 0, 0);
+        result.row[2] = _mm_setr_ps(0, 0, z_map_a, z_map_b);
+        result.row[3] = _mm_setr_ps(0, 0, -1.0f, 0);       // out.w = -z  (loads camera depth into w)
+        return result;
+    }
+
 
     inline Matrix4x4::Matrix4x4() : row()
     {
