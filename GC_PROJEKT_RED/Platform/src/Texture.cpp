@@ -2,8 +2,6 @@
 
 #include <cstdio>
 
-// stb_image is noisier under /W4 than our own code: silence it around the
-// implementation only.
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_NO_HDR
 #define STBI_NO_LINEAR

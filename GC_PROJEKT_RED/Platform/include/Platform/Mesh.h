@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Maths.h"
+#include "Texture.h"
 
 // A texture coordinate (OBJ 'vt'). v = 0 is the BOTTOM of the image.
 struct UV

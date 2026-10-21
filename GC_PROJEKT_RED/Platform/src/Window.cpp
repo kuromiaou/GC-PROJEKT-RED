@@ -1,5 +1,7 @@
 #include "Platform/Window.h"
 #include "Platform/Obj.h"
+#include "Platform/Mesh.h"
+#include "Platform/Texture.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
 #include <cmath>
@@ -10,10 +12,13 @@
 #define WARP_ASSET_DIR "assets"
 #endif
 
+#define PERSPECTIVE_CORRECT true
+
 Window::Window()
     : framebuffer(static_cast<size_t>(WIDTH)* HEIGHT)
     , zbuffer(static_cast<size_t>(WIDTH)* HEIGHT)
-{}
+{
+}
 inline uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (0xFFu << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
@@ -120,7 +125,7 @@ void Window::put_triangle_z(int x0, int y0, float z0,
     int x2, int y2, float z2,
     float zmin, float zrange, bool useZBuffer) {
     int area = edge(x0, y0, x1, y1, x2, y2);
-    if (area == 0) return;               
+    if (area == 0) return;
 
 
     if (area < 0) {
@@ -140,7 +145,7 @@ void Window::put_triangle_z(int x0, int y0, float z0,
             const int e0 = edge(x1, y1, x2, y2, x, y);
             const int e1 = edge(x2, y2, x0, y0, x, y);
             const int e2 = edge(x0, y0, x1, y1, x, y);
-            if ((e0 | e1 | e2) < 0) continue;     
+            if ((e0 | e1 | e2) < 0) continue;
             const float z = (e0 * z0 + e1 * z1 + e2 * z2) * invArea;
 
             const size_t idx = static_cast<size_t>(y) * WIDTH + x;
@@ -148,13 +153,73 @@ void Window::put_triangle_z(int x0, int y0, float z0,
                 if (z >= zbuffer[idx]) continue;
                 zbuffer[idx] = z;
             }
-            const float far01 = (z - zmin) / zrange;                  
+            const float far01 = (z - zmin) / zrange;
             const int level = std::clamp(240 - static_cast<int>(far01 * 200.0f), 0, 255);
             framebuffer[idx] = rgb((uint8_t)level, (uint8_t)level, (uint8_t)level);
         }
     }
 }
+void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
+    int x1, int y1, float z1, float iw1, UV uv1,
+    int x2, int y2, float z2, float iw2, UV uv2,
+    const Texture* tex)
+{
+    int area = edge(x0, y0, x1, y1, x2, y2);
+    if (area == 0) return;
 
+    if (area < 0) {
+        int tx = x1, ty = y1; float tz = z1, tiw = iw1; UV tuv = uv1;
+        x1 = x2; y1 = y2; z1 = z2; iw1 = iw2; uv1 = uv2;
+        x2 = tx; y2 = ty; z2 = tz; iw2 = tiw; uv2 = tuv;
+        area = -area;
+    }
+
+    const int minx = std::clamp(std::min({ x0, x1, x2 }), 0, WIDTH - 1);
+    const int miny = std::clamp(std::min({ y0, y1, y2 }), 0, HEIGHT - 1);
+    const int maxx = std::clamp(std::max({ x0, x1, x2 }), 0, WIDTH - 1);
+    const int maxy = std::clamp(std::max({ y0, y1, y2 }), 0, HEIGHT - 1);
+
+    float inv_area = 1.0f / (float)area;
+
+    float u0w = uv0.u * iw0, v0w = uv0.v * iw0;
+    float u1w = uv1.u * iw1, v1w = uv1.v * iw1;
+    float u2w = uv2.u * iw2, v2w = uv2.v * iw2;
+
+    for (int y = miny; y <= maxy; y++) {
+        for (int x = minx; x <= maxx; x++) {
+            int e0 = edge(x1, y1, x2, y2, x, y);
+            int e1 = edge(x2, y2, x0, y0, x, y);
+            int e2 = edge(x0, y0, x1, y1, x, y);
+            if ((e0 | e1 | e2) < 0) continue;
+
+            float l0 = e0 * inv_area;
+            float l1 = e1 * inv_area;
+            float l2 = e2 * inv_area;
+
+            // Depth: linear in screen space already (chapter 7).
+            float z = l0 * z0 + l1 * z1 + l2 * z2;
+
+            int idx = y * WIDTH + x;
+            if (z >= zbuffer[idx]) continue;
+
+#if PERSPECTIVE_CORRECT
+            // Interpolate u/w, v/w, 1/w linearly, then divide back.
+            float uw = l0 * u0w + l1 * u1w + l2 * u2w;
+            float vw = l0 * v0w + l1 * v1w + l2 * v2w;
+            float iw = l0 * iw0 + l1 * iw1 + l2 * iw2;
+            float u = uw / iw;
+            float v = vw / iw;
+#else
+            // Naive: interpolate u, v directly in screen space. Wrong
+            // under perspective — the texture visibly warps.
+            float u = l0 * uv0.u + l1 * uv1.u + l2 * uv2.u;
+            float v = l0 * uv0.v + l1 * uv1.v + l2 * uv2.v;
+#endif
+            zbuffer[idx] = z;
+            framebuffer[idx] = tex->SampleBilinear(u, v);
+        }
+    }
+}
 
 int Window::TestWindow()
 {
@@ -162,7 +227,7 @@ int Window::TestWindow()
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 07 - Z-buffer", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 08 - Textures", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -211,7 +276,17 @@ int Window::TestWindow()
     std::vector<int>   screenX(nv), screenY(nv);
     std::vector<float> ndcZ(nv);
     std::vector<char>  visible(nv);
-    bool useZBuffer = true;   
+    std::vector<float> invW(nv);
+
+    Texture tex;
+    if (!tex.Load(std::string(WARP_ASSET_DIR) + "/spot_texture.png")) {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    bool useZBuffer = true;
     const Uint64 freq = SDL_GetPerformanceFrequency();
     const Uint64 start = SDL_GetPerformanceCounter();
     Uint64 last = start;
@@ -241,40 +316,45 @@ int Window::TestWindow()
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
-        float zmin = 1e30f, zmax = -1e30f;
         for (size_t i = 0; i < nv; i++) {
-            const Maths::Vec3f v = mesh.verts[i];
-            const Maths::Vec4f clip = mvp * Maths::Vec4f(v.X(), v.Y(), v.Z(), 1.0f);
-            float c[4];
-            _mm_storeu_ps(c, clip.reg);       // c = {x, y, z, w}
-            if (c[3] <= zNear) { visible[i] = 0; continue; }
-            const float ndcX = c[0] / c[3];
-            const float ndcY = c[1] / c[3];
-            const float nz = c[2] / c[3];
-            screenX[i] = static_cast<int>((ndcX + 1.0f) * 0.5f * WIDTH);
-            screenY[i] = static_cast<int>((1.0f - (ndcY + 1.0f) * 0.5f) * HEIGHT); // screen Y points down
-            ndcZ[i] = nz;
-            visible[i] = 1;
-            zmin = std::min(zmin, nz);
-            zmax = std::max(zmax, nz);
+            const Maths::Vec3f& p = mesh.verts[i];
+            const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f);
+            float cv[4];
+            _mm_storeu_ps(cv, clip.reg);            // cv = x, y, z, w
+
+            if (cv[3] <= 0.0001f) { visible[i] = false; continue; }
+            const float inv = 1.0f / cv[3];
+            screenX[i] = (int)((cv[0] * inv + 1.0f) * 0.5f * WIDTH);
+            screenY[i] = (int)((1.0f - (cv[1] * inv + 1.0f) * 0.5f) * HEIGHT);
+            ndcZ[i] = cv[2] * inv;
+            invW[i] = inv;
+            visible[i] = true;
         }
-        const float zrange = (zmax > zmin) ? (zmax - zmin) : 1.0f;
 
         clear(rgb(16, 16, 24));
         clear_zbuffer();
 
-        const int faceCount = mesh.FaceCount();
-        for (int f = 0; f < faceCount; f++) {
+        for (int f = 0; f < mesh.FaceCount(); f++) {
             const int a = mesh.faces[f * 3 + 0];
             const int b = mesh.faces[f * 3 + 1];
             const int c = mesh.faces[f * 3 + 2];
-            if (a < 0 || b < 0 || c < 0 || a >= (int)nv || b >= (int)nv || c >= (int)nv) continue; // bad OBJ index
             if (!visible[a] || !visible[b] || !visible[c]) continue;
 
-            put_triangle_z(screenX[a], screenY[a], ndcZ[a],
-                screenX[b], screenY[b], ndcZ[b],
-                screenX[c], screenY[c], ndcZ[c],
-                zmin, zrange, useZBuffer);
+            // Backface culling: front-facing = negative area.
+            const int area = edge(screenX[a], screenY[a], screenX[b], screenY[b], screenX[c], screenY[c]);
+            if (area >= 0) continue;
+
+            const int ua = mesh.faceUvs[f * 3 + 0];
+            const int ub = mesh.faceUvs[f * 3 + 1];
+            const int uc = mesh.faceUvs[f * 3 + 2];
+            const UV uva = (ua >= 0) ? mesh.uvs[ua] : UV{ 0.0f, 0.0f };
+            const UV uvb = (ub >= 0) ? mesh.uvs[ub] : UV{ 0.0f, 0.0f };
+            const UV uvc = (uc >= 0) ? mesh.uvs[uc] : UV{ 0.0f, 0.0f };
+
+            draw_triangle_textured(screenX[a], screenY[a], ndcZ[a], invW[a], uva,
+                screenX[b], screenY[b], ndcZ[b], invW[b], uvb,
+                screenX[c], screenY[c], ndcZ[c], invW[c], uvc,
+                &tex);
         }
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
@@ -293,7 +373,7 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 07 - Z-buffer %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
+                "Chapter 08 - Textures %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
                 useZBuffer ? "ON" : "OFF", mesh.FaceCount(), fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;

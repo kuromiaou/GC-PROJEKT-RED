@@ -5,6 +5,8 @@
 #include <algorithm>
 
 #include "Maths.h"
+#include "Mesh.h"      // UV
+#include "Texture.h"   // Texture
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -47,7 +49,11 @@ private:
         int x1, int y1, float z1,
         int x2, int y2, float z2,
         float zmin, float zrange, bool useZBuffer);
+    inline void draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
+        int x1, int y1, float z1, float iw1, UV uv1,
+        int x2, int y2, float z2, float iw2, UV uv2,
+        const Texture* tex);
 
     std::vector<uint32_t> framebuffer;
-    std::vector<float>    zbuffer; 
+    std::vector<float>    zbuffer;
 };

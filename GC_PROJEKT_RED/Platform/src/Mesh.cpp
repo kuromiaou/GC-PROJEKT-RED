@@ -9,9 +9,6 @@ namespace
 {
     bool IsSep(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\0'; }
 
-    // Parse one face token at *p: "12", "12/3", "12/3/4" or "12//4".
-    // Writes the 1-based vertex index to vi and the 1-based texture index to
-    // ti (0 when the token has no texture part). Advances *p past the token.
     void ParseFaceToken(const char** p, int* vi, int* ti)
     {
         while (**p == ' ' || **p == '\t') ++(*p);
