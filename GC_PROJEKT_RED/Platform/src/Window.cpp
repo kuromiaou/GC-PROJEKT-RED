@@ -142,10 +142,13 @@ int Window::TestWindow()
 
         //=======================================================================================================================================================
 
-        //while (SDL_PollEvent(&e)) {
-        //    if (e.type == SDL_EVENT_QUIT) running = false;
-        //    if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)
-        //        running = false;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_EVENT_QUIT) running = false;
+            if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)
+                running = false;
+
+        //=======================================================================================================================================================
+        
         //}
         //for (int x = 0; x < WIDTH; x++) {
         //    put_pixel(x, 300, rgb(255, 64, 0));
