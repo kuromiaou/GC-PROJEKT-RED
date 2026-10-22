@@ -326,7 +326,6 @@ int Window::TestWindow()
         const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / static_cast<double>(freq);
         const float angle = static_cast<float>(seconds);
 
-
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
