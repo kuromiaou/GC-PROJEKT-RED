@@ -13,8 +13,8 @@ target_include_directories(Platform
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/third_party/MathsLib
 )
+
 # stb_image.h (single-header PNG decoder used by Texture.cpp).
-# Downloaded once into third_party/stb; commit that file to avoid the download.
 set(STB_DIR ${CMAKE_SOURCE_DIR}/third_party/stb)
 if(NOT EXISTS ${STB_DIR}/stb_image.h)
     file(DOWNLOAD

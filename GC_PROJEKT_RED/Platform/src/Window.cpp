@@ -221,13 +221,22 @@ void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
     }
 }
 
+uint32_t Window::color_scale(uint32_t c, float k) {
+    if (k < 0.0f) k = 0.0f;
+    if (k > 1.0f) k = 1.0f;
+    uint32_t r = (uint32_t)((float)((c >> 16) & 0xFF) * k);
+    uint32_t g = (uint32_t)((float)((c >> 8) & 0xFF) * k);
+    uint32_t b = (uint32_t)((float)(c & 0xFF) * k);
+    return ((uint32_t)0xFFu << 24) | (r << 16) | (g << 8) | b;
+}
+
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 08 - Textures", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 09 - Textures", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -373,7 +382,7 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 08 - Textures %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
+                "Chapter 09 - Textures %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
                 useZBuffer ? "ON" : "OFF", mesh.FaceCount(), fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
