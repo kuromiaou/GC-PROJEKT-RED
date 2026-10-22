@@ -52,8 +52,9 @@ private:
     inline void draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
         int x1, int y1, float z1, float iw1, UV uv1,
         int x2, int y2, float z2, float iw2, UV uv2,
-        const Texture* tex);
+        const Texture* tex,float light);
     inline uint32_t color_scale(uint32_t c, float k);
+
     std::vector<uint32_t> framebuffer;
     std::vector<float>    zbuffer;
 };

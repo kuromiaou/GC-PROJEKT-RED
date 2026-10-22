@@ -1,5 +1,6 @@
 #include "Platform/Window.h"
 #include "Platform/Obj.h"
+#include "Platform/Clip.h"
 #include "Platform/Mesh.h"
 #include "Platform/Texture.h"
 #include <SDL3/SDL.h>
@@ -162,7 +163,7 @@ void Window::put_triangle_z(int x0, int y0, float z0,
 void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
     int x1, int y1, float z1, float iw1, UV uv1,
     int x2, int y2, float z2, float iw2, UV uv2,
-    const Texture* tex)
+    const Texture* tex,float light)
 {
     int area = edge(x0, y0, x1, y1, x2, y2);
     if (area == 0) return;
@@ -173,7 +174,7 @@ void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
         x2 = tx; y2 = ty; z2 = tz; iw2 = tiw; uv2 = tuv;
         area = -area;
     }
-
+    
     const int minx = std::clamp(std::min({ x0, x1, x2 }), 0, WIDTH - 1);
     const int miny = std::clamp(std::min({ y0, y1, y2 }), 0, HEIGHT - 1);
     const int maxx = std::clamp(std::max({ x0, x1, x2 }), 0, WIDTH - 1);
@@ -216,7 +217,7 @@ void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
             float v = l0 * uv0.v + l1 * uv1.v + l2 * uv2.v;
 #endif
             zbuffer[idx] = z;
-            framebuffer[idx] = tex->SampleBilinear(u, v);
+            framebuffer[idx] = color_scale(tex->SampleBilinear(u, v), light);
         }
     }
 }
@@ -305,6 +306,10 @@ int Window::TestWindow()
 
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
+    const Maths::Vec3f lightDir = Maths::Vec3f(0.5f, 0.8f, 1.0f).Normalize(); // points TOWARD the light
+    const float ambient = 0.15f;
+    std::vector<Maths::Vec3f> worldPos(nv);
+
 
     bool running = true;
     SDL_Event e;
@@ -326,6 +331,10 @@ int Window::TestWindow()
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
         for (size_t i = 0; i < nv; i++) {
+            const Maths::Vec4f w4 = model * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f);
+            float wv[4];
+            _mm_storeu_ps(wv, w4.reg);
+            worldPos[i] = Maths::Vec3f(wv[0], wv[1], wv[2]);
             const Maths::Vec3f& p = mesh.verts[i];
             const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f);
             float cv[4];
@@ -360,6 +369,13 @@ int Window::TestWindow()
             const UV uvb = (ub >= 0) ? mesh.uvs[ub] : UV{ 0.0f, 0.0f };
             const UV uvc = (uc >= 0) ? mesh.uvs[uc] : UV{ 0.0f, 0.0f };
 
+            const Maths::Vec3f n = (worldPos[b] - worldPos[a]).Cross(worldPos[c] - worldPos[a]);
+            float light = ambient;
+            if (n.MagnitudeSquared() > 1e-12f) {            // Normalize() asserts on zero length
+                const float diff = n.Normalize().Dot(lightDir);
+                light = ambient + (1.0f - ambient) * std::max(0.0f, diff);
+            }
+
             draw_triangle_textured(screenX[a], screenY[a], ndcZ[a], invW[a], uva,
                 screenX[b], screenY[b], ndcZ[b], invW[b], uvb,
                 screenX[c], screenY[c], ndcZ[c], invW[c], uvc,
@@ -382,9 +398,9 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 09 - Textures %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
+                "Chapter 10 - Diffuse Lighting %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
                 useZBuffer ? "ON" : "OFF", mesh.FaceCount(), fps, ms);
-            SDL_SetWindowTitle(window, title);
+            SDL_SetWindowTitle(window, title); 
             fpsAccum = 0.0;
             fpsCount = 0;
         }
