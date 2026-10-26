@@ -2,6 +2,7 @@
 #include "Platform/Obj.h"
 #include "Platform/Mesh.h"
 #include "Platform/Texture.h"
+#include "Platform/Clip.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
 #include <cmath>
@@ -12,13 +13,40 @@
 #define WARP_ASSET_DIR "assets"
 #endif
 
-#define PERSPECTIVE_CORRECT true
+// Ambient floor: how lit a surface is even when it faces away from the light.
+// 0.0 = pitch black on the dark side; 1.0 = no shading at all.
+// 0.18 keeps the texture readable in shadow.
+#define AMBIENT 0.18f
+
+// How bright the Blinn-Phong highlight is: 0 = none, 1 = as bright as the light.
+#define SPEC_STRENGTH 0.55f
+
+namespace
+{
+    // x^32 in 5 multiplies (x2, x4, x8, x16, x32). The shininess exponent is
+    // fixed at 32; this is far cheaper than powf() in the per-pixel loop.
+    inline float pow32(float x)
+    {
+        const float x2 = x * x, x4 = x2 * x2, x8 = x4 * x4, x16 = x8 * x8;
+        return x16 * x16;
+    }
+
+    // Texel * diffuse_k + white * spec_k, clamped to 255 per channel.
+    inline uint32_t color_phong(uint32_t texel, float diffuse_k, float spec_k)
+    {
+        const float add = 255.0f * spec_k;
+        const float r = std::min(255.0f, static_cast<float>((texel >> 16) & 0xFF) * diffuse_k + add);
+        const float g = std::min(255.0f, static_cast<float>((texel >> 8) & 0xFF) * diffuse_k + add);
+        const float b = std::min(255.0f, static_cast<float>(texel & 0xFF) * diffuse_k + add);
+        return (0xFFu << 24) | (static_cast<uint32_t>(r) << 16)
+            | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
+    }
+}
 
 Window::Window()
     : framebuffer(static_cast<size_t>(WIDTH)* HEIGHT)
     , zbuffer(static_cast<size_t>(WIDTH)* HEIGHT)
-{
-}
+{}
 inline uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (0xFFu << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
@@ -159,18 +187,60 @@ void Window::put_triangle_z(int x0, int y0, float z0,
         }
     }
 }
-void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
-    int x1, int y1, float z1, float iw1, UV uv1,
-    int x2, int y2, float z2, float iw2, UV uv2,
-    const Texture* tex)
+// Per-triangle normal in MODEL space (cross product of two edges).
+void Window::compute_face_normals(const Mesh& mesh, std::vector<Maths::Vec3f>& out)
+{
+    const int faceCount = mesh.FaceCount();
+    out.assign(static_cast<size_t>(faceCount), Maths::Vec3f());      // zero vectors
+    const int nv = mesh.VertexCount();
+    for (int f = 0; f < faceCount; f++) {
+        const int ia = mesh.faces[f * 3 + 0];
+        const int ib = mesh.faces[f * 3 + 1];
+        const int ic = mesh.faces[f * 3 + 2];
+        if (ia < 0 || ib < 0 || ic < 0 || ia >= nv || ib >= nv || ic >= nv) continue;  // bad OBJ index
+
+        const Maths::Vec3f n = (mesh.verts[ib] - mesh.verts[ia]).Cross(mesh.verts[ic] - mesh.verts[ia]);
+        const float lenSq = n.MagnitudeSquared();
+        if (lenSq > 1e-20f)
+            out[static_cast<size_t>(f)] = n * (1.0f / std::sqrt(lenSq));
+    }
+}
+
+// One model-space normal per VERTEX: sum the normals of every triangle that
+// touches it, then normalise. Unweighted average - fine for a cleanly modelled
+// closed mesh like Spot. Neighbouring triangles share vertex normals, so the
+// interpolated normal flows continuously across edges: no more facets.
+void Window::compute_vertex_normals(const Mesh& mesh, const std::vector<Maths::Vec3f>& faceNormals,
+    std::vector<Maths::Vec3f>& out)
+{
+    const int nv = mesh.VertexCount();
+    out.assign(static_cast<size_t>(nv), Maths::Vec3f());
+    for (int f = 0; f < mesh.FaceCount(); f++) {
+        for (int k = 0; k < 3; k++) {
+            const int v = mesh.faces[f * 3 + k];
+            if (v < 0 || v >= nv) continue;
+            out[static_cast<size_t>(v)] += faceNormals[static_cast<size_t>(f)];
+        }
+    }
+    for (auto& n : out) {
+        const float lenSq = n.MagnitudeSquared();
+        n = (lenSq > 1e-20f) ? n * (1.0f / std::sqrt(lenSq)) : Maths::Vec3f();
+    }
+}
+
+void Window::draw_triangle_phong(
+    int x0, int y0, float z0, float iw0, UV uv0, Maths::Vec3f n0,
+    int x1, int y1, float z1, float iw1, UV uv1, Maths::Vec3f n1,
+    int x2, int y2, float z2, float iw2, UV uv2, Maths::Vec3f n2,
+    const Texture* tex, const ShadeParams& sp)
 {
     int area = edge(x0, y0, x1, y1, x2, y2);
     if (area == 0) return;
 
+    // Normalise winding, carrying ALL per-vertex attributes with the swapped vertex.
     if (area < 0) {
-        int tx = x1, ty = y1; float tz = z1, tiw = iw1; UV tuv = uv1;
-        x1 = x2; y1 = y2; z1 = z2; iw1 = iw2; uv1 = uv2;
-        x2 = tx; y2 = ty; z2 = tz; iw2 = tiw; uv2 = tuv;
+        std::swap(x1, x2); std::swap(y1, y2); std::swap(z1, z2);
+        std::swap(iw1, iw2); std::swap(uv1, uv2); std::swap(n1, n2);
         area = -area;
     }
 
@@ -179,55 +249,93 @@ void Window::draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
     const int maxx = std::clamp(std::max({ x0, x1, x2 }), 0, WIDTH - 1);
     const int maxy = std::clamp(std::max({ y0, y1, y2 }), 0, HEIGHT - 1);
 
-    float inv_area = 1.0f / (float)area;
+    const float inv_area = 1.0f / static_cast<float>(area);
 
-    float u0w = uv0.u * iw0, v0w = uv0.v * iw0;
-    float u1w = uv1.u * iw1, v1w = uv1.v * iw1;
-    float u2w = uv2.u * iw2, v2w = uv2.v * iw2;
+    // Pre-divide every perspective-interpolated attribute by w. (attr/w) and
+    // (1/w) interpolate linearly on screen; dividing them at the pixel gives
+    // back the true attribute. Same trick as the UVs in chapter 9, now also
+    // used for the normal.
+    const float u0w = uv0.u * iw0, v0w = uv0.v * iw0;
+    const float u1w = uv1.u * iw1, v1w = uv1.v * iw1;
+    const float u2w = uv2.u * iw2, v2w = uv2.v * iw2;
+    const float n0x = n0.X() * iw0, n0y = n0.Y() * iw0, n0z = n0.Z() * iw0;
+    const float n1x = n1.X() * iw1, n1y = n1.Y() * iw1, n1z = n1.Z() * iw1;
+    const float n2x = n2.X() * iw2, n2y = n2.Y() * iw2, n2z = n2.Z() * iw2;
+
+    const float Lx = sp.L.X(), Ly = sp.L.Y(), Lz = sp.L.Z();
+    const float Hx = sp.H.X(), Hy = sp.H.Y(), Hz = sp.H.Z();
 
     for (int y = miny; y <= maxy; y++) {
         for (int x = minx; x <= maxx; x++) {
-            int e0 = edge(x1, y1, x2, y2, x, y);
-            int e1 = edge(x2, y2, x0, y0, x, y);
-            int e2 = edge(x0, y0, x1, y1, x, y);
+            const int e0 = edge(x1, y1, x2, y2, x, y);
+            const int e1 = edge(x2, y2, x0, y0, x, y);
+            const int e2 = edge(x0, y0, x1, y1, x, y);
             if ((e0 | e1 | e2) < 0) continue;
 
-            float l0 = e0 * inv_area;
-            float l1 = e1 * inv_area;
-            float l2 = e2 * inv_area;
+            const float l0 = e0 * inv_area;
+            const float l1 = e1 * inv_area;
+            const float l2 = e2 * inv_area;
 
-            // Depth: linear in screen space already (chapter 7).
-            float z = l0 * z0 + l1 * z1 + l2 * z2;
-
-            int idx = y * WIDTH + x;
+            const float z = l0 * z0 + l1 * z1 + l2 * z2;     // linear on screen (chapter 7)
+            const size_t idx = static_cast<size_t>(y) * WIDTH + x;
             if (z >= zbuffer[idx]) continue;
 
-#if PERSPECTIVE_CORRECT
-            // Interpolate u/w, v/w, 1/w linearly, then divide back.
-            float uw = l0 * u0w + l1 * u1w + l2 * u2w;
-            float vw = l0 * v0w + l1 * v1w + l2 * v2w;
-            float iw = l0 * iw0 + l1 * iw1 + l2 * iw2;
-            float u = uw / iw;
-            float v = vw / iw;
-#else
-            // Naive: interpolate u, v directly in screen space. Wrong
-            // under perspective — the texture visibly warps.
-            float u = l0 * uv0.u + l1 * uv1.u + l2 * uv2.u;
-            float v = l0 * uv0.v + l1 * uv1.v + l2 * uv2.v;
-#endif
+            const float iw = l0 * iw0 + l1 * iw1 + l2 * iw2;
+            const float inv_iw = 1.0f / iw;
+            const float u = (l0 * u0w + l1 * u1w + l2 * u2w) * inv_iw;
+            const float v = (l0 * v0w + l1 * v1w + l2 * v2w) * inv_iw;
+
+            const uint32_t texel = sp.bilinear ? tex->SampleBilinear(u, v) : tex->Sample(u, v);
+
+            float diffuse_k = 1.0f, spec_k = 0.0f;
+            if (sp.lighting) {
+                // Perspective-correct interpolated normal, then RE-NORMALISE:
+                // blending unit vectors gives a vector shorter than 1.
+                float Nx = (l0 * n0x + l1 * n1x + l2 * n2x) * inv_iw;
+                float Ny = (l0 * n0y + l1 * n1y + l2 * n2y) * inv_iw;
+                float Nz = (l0 * n0z + l1 * n1z + l2 * n2z) * inv_iw;
+                const float lenSq = Nx * Nx + Ny * Ny + Nz * Nz;
+                if (lenSq > 1e-12f) {
+                    const float k = 1.0f / std::sqrt(lenSq);
+                    Nx *= k; Ny *= k; Nz *= k;
+                }
+                else {
+                    Nx = Ny = Nz = 0.0f;      // normals cancelled out: ambient only
+                }
+
+                const float ndotl = std::max(0.0f, Nx * Lx + Ny * Ly + Nz * Lz);
+                diffuse_k = AMBIENT + (1.0f - AMBIENT) * ndotl;
+
+                const float ndoth = std::max(0.0f, Nx * Hx + Ny * Hy + Nz * Hz);
+                spec_k = pow32(ndoth) * SPEC_STRENGTH;
+            }
+
             zbuffer[idx] = z;
-            framebuffer[idx] = tex->SampleBilinear(u, v);
+            framebuffer[idx] = color_phong(texel, diffuse_k, spec_k);
         }
     }
 }
 
-uint32_t Window::color_scale(uint32_t c, float k) {
-    if (k < 0.0f) k = 0.0f;
-    if (k > 1.0f) k = 1.0f;
-    uint32_t r = (uint32_t)((float)((c >> 16) & 0xFF) * k);
-    uint32_t g = (uint32_t)((float)((c >> 8) & 0xFF) * k);
-    uint32_t b = (uint32_t)((float)(c & 0xFF) * k);
-    return ((uint32_t)0xFFu << 24) | (r << 16) | (g << 8) | b;
+void Window::project_and_draw(const ClipVertex* tri, const Texture* tex, const ShadeParams& sp)
+{
+    int   sx[3], sy[3];
+    float nz[3], iw[3];
+    for (int k = 0; k < 3; k++) {
+        const float inv = 1.0f / tri[k].w;     // w > 0 guaranteed: the clipper kept only the front side
+        sx[k] = static_cast<int>((tri[k].x * inv + 1.0f) * 0.5f * WIDTH);
+        sy[k] = static_cast<int>((1.0f - (tri[k].y * inv + 1.0f) * 0.5f) * HEIGHT);   // screen Y points down
+        nz[k] = tri[k].z * inv;
+        iw[k] = inv;
+    }
+
+    // Backface culling (chapter 8): front-facing = negative area.
+    if (edge(sx[0], sy[0], sx[1], sy[1], sx[2], sy[2]) >= 0) return;
+
+    draw_triangle_phong(
+        sx[0], sy[0], nz[0], iw[0], UV{ tri[0].u, tri[0].v }, Maths::Vec3f(tri[0].nx, tri[0].ny, tri[0].nz),
+        sx[1], sy[1], nz[1], iw[1], UV{ tri[1].u, tri[1].v }, Maths::Vec3f(tri[1].nx, tri[1].ny, tri[1].nz),
+        sx[2], sy[2], nz[2], iw[2], UV{ tri[2].u, tri[2].v }, Maths::Vec3f(tri[2].nx, tri[2].ny, tri[2].nz),
+        tex, sp);
 }
 
 int Window::TestWindow()
@@ -236,7 +344,7 @@ int Window::TestWindow()
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 09 - Textures", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Chapter 12 - Phong + clipping + filtering", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -278,14 +386,11 @@ int Window::TestWindow()
     const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(
         Maths::Matrix4x4::radians(50.0f), aspect, zNear, 100.0f);
 
-    const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
-        Maths::Vec3f(0, 0, 3), Maths::Vec3f(0, 0, 0), Maths::Vec3f(0, 1, 0));
-
     const size_t nv = mesh.verts.size();
-    std::vector<int>   screenX(nv), screenY(nv);
-    std::vector<float> ndcZ(nv);
-    std::vector<char>  visible(nv);
-    std::vector<float> invW(nv);
+    // Per-vertex CLIP-space position + world normal, refilled every frame. No
+    // screen coords or 1/w here: those are computed per OUTPUT triangle, after
+    // clipping. (UVs are per face corner, so they are filled in per triangle.)
+    std::vector<ClipVertex> clipVerts(nv);
 
     Texture tex;
     if (!tex.Load(std::string(WARP_ASSET_DIR) + "/spot_texture.png")) {
@@ -295,7 +400,26 @@ int Window::TestWindow()
         SDL_Quit();
         return 1;
     }
-    bool useZBuffer = true;
+
+    // One model-space normal per triangle, computed once.
+    std::vector<Maths::Vec3f> faceNormals;
+    compute_face_normals(mesh, faceNormals);
+    // ...which feed one averaged normal per vertex (chapter 11).
+    std::vector<Maths::Vec3f> vertexNormals;
+    compute_vertex_normals(mesh, faceNormals, vertexNormals);
+
+    // Directional light, fixed in WORLD space. L points FROM the surface TOWARD
+    // the light: up and a bit to the front-right, like a sun over your shoulder.
+    const Maths::Vec3f light = Maths::Vec3f(0.4f, 0.8f, 0.45f).Normalize();
+
+    // The camera looks down -Z from (0, 0, eyeZ). The viewer direction is
+    // ~ +Z, so the Blinn-Phong half-vector is normalize(L + V).
+    ShadeParams sp;
+    sp.L = light;
+    sp.H = (light + Maths::Vec3f(0.0f, 0.0f, 1.0f)).Normalize();
+    sp.lighting = true;    // L: lighting on/off
+    sp.bilinear = true;    // B: bilinear / nearest-neighbour
+    float eyeZ = 3.0f;     // W / S: fly the camera in / out (into the cow to see clipping)
     const Uint64 freq = SDL_GetPerformanceFrequency();
     const Uint64 start = SDL_GetPerformanceCounter();
     Uint64 last = start;
@@ -312,7 +436,12 @@ int Window::TestWindow()
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) running = false;
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE) running = false;
-            if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_Z) useZBuffer = !useZBuffer;
+            if (e.type == SDL_EVENT_KEY_DOWN) {
+                if (e.key.key == SDLK_L) sp.lighting = !sp.lighting;
+                if (e.key.key == SDLK_B) sp.bilinear = !sp.bilinear;
+                if (e.key.key == SDLK_W) eyeZ -= 0.15f;    // key repeat keeps it moving
+                if (e.key.key == SDLK_S) eyeZ += 0.15f;
+            }
         }
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -322,48 +451,56 @@ int Window::TestWindow()
         const float angle = static_cast<float>(seconds);
 
 
+        // Target is always one unit ahead of the eye, so the camera can pass
+        // through z = 0 without LookAt degenerating (eye == target).
+        const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
+            Maths::Vec3f(0, 0, eyeZ), Maths::Vec3f(0, 0, eyeZ - 1.0f), Maths::Vec3f(0, 1, 0));
+
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
+        // Project each vertex to CLIP space only (no divide) and rotate its
+        // normal into world space. The clipper handles "behind the camera"
+        // properly, so there is no visible[] flag any more.
         for (size_t i = 0; i < nv; i++) {
             const Maths::Vec3f& p = mesh.verts[i];
             const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f);
             float cv[4];
             _mm_storeu_ps(cv, clip.reg);            // cv = x, y, z, w
 
-            if (cv[3] <= 0.0001f) { visible[i] = false; continue; }
-            const float inv = 1.0f / cv[3];
-            screenX[i] = (int)((cv[0] * inv + 1.0f) * 0.5f * WIDTH);
-            screenY[i] = (int)((1.0f - (cv[1] * inv + 1.0f) * 0.5f) * HEIGHT);
-            ndcZ[i] = cv[2] * inv;
-            invW[i] = inv;
-            visible[i] = true;
+            const Maths::Vec3f& vn = vertexNormals[i];
+            const Maths::Vec3f nw((model * Maths::Vec4f(vn.X(), vn.Y(), vn.Z(), 0.0f)).reg);   // w = 0: direction
+
+            ClipVertex& c = clipVerts[i];
+            c.x = cv[0]; c.y = cv[1]; c.z = cv[2]; c.w = cv[3];
+            c.nx = nw.X(); c.ny = nw.Y(); c.nz = nw.Z();
+            c.u = c.v = 0.0f;                       // set per face below
         }
 
         clear(rgb(16, 16, 24));
         clear_zbuffer();
 
+        const int nvi = static_cast<int>(nv);
         for (int f = 0; f < mesh.FaceCount(); f++) {
             const int a = mesh.faces[f * 3 + 0];
             const int b = mesh.faces[f * 3 + 1];
             const int c = mesh.faces[f * 3 + 2];
-            if (!visible[a] || !visible[b] || !visible[c]) continue;
-
-            // Backface culling: front-facing = negative area.
-            const int area = edge(screenX[a], screenY[a], screenX[b], screenY[b], screenX[c], screenY[c]);
-            if (area >= 0) continue;
+            if (a < 0 || b < 0 || c < 0 || a >= nvi || b >= nvi || c >= nvi) continue;   // bad OBJ index
 
             const int ua = mesh.faceUvs[f * 3 + 0];
             const int ub = mesh.faceUvs[f * 3 + 1];
             const int uc = mesh.faceUvs[f * 3 + 2];
-            const UV uva = (ua >= 0) ? mesh.uvs[ua] : UV{ 0.0f, 0.0f };
-            const UV uvb = (ub >= 0) ? mesh.uvs[ub] : UV{ 0.0f, 0.0f };
-            const UV uvc = (uc >= 0) ? mesh.uvs[uc] : UV{ 0.0f, 0.0f };
 
-            draw_triangle_textured(screenX[a], screenY[a], ndcZ[a], invW[a], uva,
-                screenX[b], screenY[b], ndcZ[b], invW[b], uvb,
-                screenX[c], screenY[c], ndcZ[c], invW[c], uvc,
-                &tex);
+            ClipVertex v0 = clipVerts[a], v1 = clipVerts[b], v2 = clipVerts[c];
+            if (ua >= 0) { v0.u = mesh.uvs[ua].u; v0.v = mesh.uvs[ua].v; }
+            if (ub >= 0) { v1.u = mesh.uvs[ub].u; v1.v = mesh.uvs[ub].v; }
+            if (uc >= 0) { v2.u = mesh.uvs[uc].u; v2.v = mesh.uvs[uc].v; }
+
+            // Near-plane clip -> 0, 1 or 2 triangles, each fully in front.
+            ClipVertex out[6];
+            const int nTris = Clip::ClipTriangleNear(v0, v1, v2, out);
+            for (int t = 0; t < nTris; t++)
+                project_and_draw(&out[t * 3], &tex, sp);
         }
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
@@ -382,8 +519,8 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 09 - Textures %s  |  %d tris  |  %.1f FPS  (%.2f ms/frame)",
-                useZBuffer ? "ON" : "OFF", mesh.FaceCount(), fps, ms);
+                "Chapter 12 - Phong %s  |  %s  |  eye z=%.2f  |  %.1f FPS  (%.2f ms/frame)",
+                sp.lighting ? "ON" : "OFF", sp.bilinear ? "bilinear" : "nearest", eyeZ, fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
             fpsCount = 0;
