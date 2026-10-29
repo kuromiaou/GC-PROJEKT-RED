@@ -3,8 +3,11 @@
 #include "Platform/Mesh.h"
 #include "Platform/Texture.h"
 #include "Platform/Clip.h"
+#include "Platform/ParticleManager.h"
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
+
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -13,25 +16,18 @@
 #define WARP_ASSET_DIR "assets"
 #endif
 
-// Ambient floor: how lit a surface is even when it faces away from the light.
-// 0.0 = pitch black on the dark side; 1.0 = no shading at all.
-// 0.18 keeps the texture readable in shadow.
 #define AMBIENT 0.18f
 
-// How bright the Blinn-Phong highlight is: 0 = none, 1 = as bright as the light.
 #define SPEC_STRENGTH 0.55f
 
 namespace
 {
-    // x^32 in 5 multiplies (x2, x4, x8, x16, x32). The shininess exponent is
-    // fixed at 32; this is far cheaper than powf() in the per-pixel loop.
     inline float pow32(float x)
     {
         const float x2 = x * x, x4 = x2 * x2, x8 = x4 * x4, x16 = x8 * x8;
         return x16 * x16;
     }
 
-    // Texel * diffuse_k + white * spec_k, clamped to 255 per channel.
     inline uint32_t color_phong(uint32_t texel, float diffuse_k, float spec_k)
     {
         const float add = 255.0f * spec_k;
@@ -187,7 +183,6 @@ void Window::put_triangle_z(int x0, int y0, float z0,
         }
     }
 }
-// Per-triangle normal in MODEL space (cross product of two edges).
 void Window::compute_face_normals(const Mesh& mesh, std::vector<Maths::Vec3f>& out)
 {
     const int faceCount = mesh.FaceCount();
@@ -206,10 +201,6 @@ void Window::compute_face_normals(const Mesh& mesh, std::vector<Maths::Vec3f>& o
     }
 }
 
-// One model-space normal per VERTEX: sum the normals of every triangle that
-// touches it, then normalise. Unweighted average - fine for a cleanly modelled
-// closed mesh like Spot. Neighbouring triangles share vertex normals, so the
-// interpolated normal flows continuously across edges: no more facets.
 void Window::compute_vertex_normals(const Mesh& mesh, const std::vector<Maths::Vec3f>& faceNormals,
     std::vector<Maths::Vec3f>& out)
 {
@@ -228,7 +219,7 @@ void Window::compute_vertex_normals(const Mesh& mesh, const std::vector<Maths::V
     }
 }
 
-void Window::draw_triangle_phong(
+void Window::put_triangle_phong(
     int x0, int y0, float z0, float iw0, UV uv0, Maths::Vec3f n0,
     int x1, int y1, float z1, float iw1, UV uv1, Maths::Vec3f n1,
     int x2, int y2, float z2, float iw2, UV uv2, Maths::Vec3f n2,
@@ -237,7 +228,6 @@ void Window::draw_triangle_phong(
     int area = edge(x0, y0, x1, y1, x2, y2);
     if (area == 0) return;
 
-    // Normalise winding, carrying ALL per-vertex attributes with the swapped vertex.
     if (area < 0) {
         std::swap(x1, x2); std::swap(y1, y2); std::swap(z1, z2);
         std::swap(iw1, iw2); std::swap(uv1, uv2); std::swap(n1, n2);
@@ -251,10 +241,6 @@ void Window::draw_triangle_phong(
 
     const float inv_area = 1.0f / static_cast<float>(area);
 
-    // Pre-divide every perspective-interpolated attribute by w. (attr/w) and
-    // (1/w) interpolate linearly on screen; dividing them at the pixel gives
-    // back the true attribute. Same trick as the UVs in chapter 9, now also
-    // used for the normal.
     const float u0w = uv0.u * iw0, v0w = uv0.v * iw0;
     const float u1w = uv1.u * iw1, v1w = uv1.v * iw1;
     const float u2w = uv2.u * iw2, v2w = uv2.v * iw2;
@@ -316,7 +302,7 @@ void Window::draw_triangle_phong(
     }
 }
 
-void Window::project_and_draw(const ClipVertex* tri, const Texture* tex, const ShadeParams& sp)
+void Window::project_and_put(const ClipVertex* tri, const Texture* tex, const ShadeParams& sp)
 {
     int   sx[3], sy[3];
     float nz[3], iw[3];
@@ -328,14 +314,48 @@ void Window::project_and_draw(const ClipVertex* tri, const Texture* tex, const S
         iw[k] = inv;
     }
 
-    // Backface culling (chapter 8): front-facing = negative area.
     if (edge(sx[0], sy[0], sx[1], sy[1], sx[2], sy[2]) >= 0) return;
 
-    draw_triangle_phong(
+    put_triangle_phong(
         sx[0], sy[0], nz[0], iw[0], UV{ tri[0].u, tri[0].v }, Maths::Vec3f(tri[0].nx, tri[0].ny, tri[0].nz),
         sx[1], sy[1], nz[1], iw[1], UV{ tri[1].u, tri[1].v }, Maths::Vec3f(tri[1].nx, tri[1].ny, tri[1].nz),
         sx[2], sy[2], nz[2], iw[2], UV{ tri[2].u, tri[2].v }, Maths::Vec3f(tri[2].nx, tri[2].ny, tri[2].nz),
         tex, sp);
+}
+
+void Window::put_particles(const ParticleSystem& ps, const Maths::Matrix4x4& viewProj)
+{
+    const int half = 1;
+    auto to8 = [](float f) { return static_cast<uint8_t>(std::clamp(f, 0.0f, 1.0f) * 255.0f); };
+
+    for (const Particle& p : ps.particles) {
+        const Maths::Vec4f c4 = viewProj * Maths::Vec4f(p.position[0], p.position[1], p.position[2], 1.0f);
+        float c[4];
+        _mm_storeu_ps(c, c4.reg);             // c = x, y, z, w
+        const float w = c[3];
+
+        if (c[0] < -w || c[0] > w || c[1] < -w || c[1] > w || c[2] < -w || c[2] > w) continue;
+
+        const float inv = 1.0f / w;
+        const int   sx  = static_cast<int>((c[0] * inv + 1.0f) * 0.5f * WIDTH);
+        const int   sy  = static_cast<int>((1.0f - (c[1] * inv + 1.0f) * 0.5f) * HEIGHT);
+        const float z   = c[2] * inv;
+
+        float fade = 1.0f;
+        if (p.initialLifetime > 0.0f)
+            fade = std::clamp(p.lifetime / p.initialLifetime, 0.0f, 1.0f);
+        const uint32_t col = rgb(to8(p.color[0] * fade), to8(p.color[1] * fade), to8(p.color[2] * fade));
+
+        const int x0 = std::max(sx - half, 0), x1 = std::min(sx + half, WIDTH - 1);
+        const int y0 = std::max(sy - half, 0), y1 = std::min(sy + half, HEIGHT - 1);
+        for (int y = y0; y <= y1; y++) {
+            for (int x = x0; x <= x1; x++) {
+                const size_t idx = static_cast<size_t>(y) * WIDTH + x;
+                if (z >= zbuffer[idx]) continue;
+                framebuffer[idx] = col;
+            }
+        }
+    }
 }
 
 int Window::TestWindow()
@@ -344,7 +364,7 @@ int Window::TestWindow()
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
-    SDL_Window* window = SDL_CreateWindow("Chapter 12 - Phong + clipping + filtering", WIDTH, HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("Particle System", WIDTH, HEIGHT, 0);
     if (!window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         SDL_Quit();
@@ -387,9 +407,6 @@ int Window::TestWindow()
         Maths::Matrix4x4::radians(50.0f), aspect, zNear, 100.0f);
 
     const size_t nv = mesh.verts.size();
-    // Per-vertex CLIP-space position + world normal, refilled every frame. No
-    // screen coords or 1/w here: those are computed per OUTPUT triangle, after
-    // clipping. (UVs are per face corner, so they are filled in per triangle.)
     std::vector<ClipVertex> clipVerts(nv);
 
     Texture tex;
@@ -401,25 +418,19 @@ int Window::TestWindow()
         return 1;
     }
 
-    // One model-space normal per triangle, computed once.
     std::vector<Maths::Vec3f> faceNormals;
     compute_face_normals(mesh, faceNormals);
-    // ...which feed one averaged normal per vertex (chapter 11).
     std::vector<Maths::Vec3f> vertexNormals;
     compute_vertex_normals(mesh, faceNormals, vertexNormals);
 
-    // Directional light, fixed in WORLD space. L points FROM the surface TOWARD
-    // the light: up and a bit to the front-right, like a sun over your shoulder.
     const Maths::Vec3f light = Maths::Vec3f(0.4f, 0.8f, 0.45f).Normalize();
 
-    // The camera looks down -Z from (0, 0, eyeZ). The viewer direction is
-    // ~ +Z, so the Blinn-Phong half-vector is normalize(L + V).
     ShadeParams sp;
     sp.L = light;
     sp.H = (light + Maths::Vec3f(0.0f, 0.0f, 1.0f)).Normalize();
-    sp.lighting = true;    // L: lighting on/off
-    sp.bilinear = true;    // B: bilinear / nearest-neighbour
-    float eyeZ = 3.0f;     // W / S: fly the camera in / out (into the cow to see clipping)
+    sp.lighting = true;
+    sp.bilinear = true;
+    float eyeZ = 3.0f;
     const Uint64 freq = SDL_GetPerformanceFrequency();
     const Uint64 start = SDL_GetPerformanceCounter();
     Uint64 last = start;
@@ -427,20 +438,45 @@ int Window::TestWindow()
     int    fpsCount = 0;
     char   title[160];
 
+	ParticleSystem particleSystem;
+	for (int i = 0; i < 100; ++i) {
+		Particle p;
+        p.velocity[0] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+        p.velocity[1] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+        p.velocity[2] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+        p.lifetime = static_cast<float>(rand()) / RAND_MAX * 5.0f;
+        p.initialLifetime = p.lifetime;
+		particleSystem.emit(p);
+	}
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
     bool running = true;
     SDL_Event e;
+	float deltaTime = 0.0f;
     while (running) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) running = false;
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE) running = false;
+            if (e.type == SDL_EVENT_MOUSE_WHEEL && e.wheel.y > 0) {
+                eyeZ -= 0.15f;
+            }
+            if (e.type == SDL_EVENT_MOUSE_WHEEL && e.wheel.y < 0) {
+                eyeZ += 0.15f;
+            }
             if (e.type == SDL_EVENT_KEY_DOWN) {
                 if (e.key.key == SDLK_L) sp.lighting = !sp.lighting;
-                if (e.key.key == SDLK_B) sp.bilinear = !sp.bilinear;
-                if (e.key.key == SDLK_W) eyeZ -= 0.15f;    // key repeat keeps it moving
+                if (e.key.key == SDLK_W) eyeZ -= 0.15f;
                 if (e.key.key == SDLK_S) eyeZ += 0.15f;
+                if (e.key.key == SDLK_P) {
+                    Particle p;
+                    p.velocity[0] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+                    p.velocity[1] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+                    p.velocity[2] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+                    p.lifetime = static_cast<float>(rand()) / RAND_MAX * 5.0f;
+                    p.initialLifetime = p.lifetime;
+                    particleSystem.emit(p);
+                }
             }
         }
 
@@ -451,17 +487,12 @@ int Window::TestWindow()
         const float angle = static_cast<float>(seconds);
 
 
-        // Target is always one unit ahead of the eye, so the camera can pass
-        // through z = 0 without LookAt degenerating (eye == target).
         const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
             Maths::Vec3f(0, 0, eyeZ), Maths::Vec3f(0, 0, eyeZ - 1.0f), Maths::Vec3f(0, 1, 0));
 
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
-        // Project each vertex to CLIP space only (no divide) and rotate its
-        // normal into world space. The clipper handles "behind the camera"
-        // properly, so there is no visible[] flag any more.
         for (size_t i = 0; i < nv; i++) {
             const Maths::Vec3f& p = mesh.verts[i];
             const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f);
@@ -477,8 +508,12 @@ int Window::TestWindow()
             c.u = c.v = 0.0f;                       // set per face below
         }
 
+		particleSystem.update(std::min(deltaTime, 0.05f));   // clamp: a stalled frame must not teleport everything
+
         clear(rgb(16, 16, 24));
         clear_zbuffer();
+
+
 
         const int nvi = static_cast<int>(nv);
         for (int f = 0; f < mesh.FaceCount(); f++) {
@@ -496,12 +531,14 @@ int Window::TestWindow()
             if (ub >= 0) { v1.u = mesh.uvs[ub].u; v1.v = mesh.uvs[ub].v; }
             if (uc >= 0) { v2.u = mesh.uvs[uc].u; v2.v = mesh.uvs[uc].v; }
 
-            // Near-plane clip -> 0, 1 or 2 triangles, each fully in front.
             ClipVertex out[6];
             const int nTris = Clip::ClipTriangleNear(v0, v1, v2, out);
             for (int t = 0; t < nTris; t++)
-                project_and_draw(&out[t * 3], &tex, sp);
+                project_and_put(&out[t * 3], &tex, sp);
         }
+
+
+        put_particles(particleSystem, projection * view);
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
         SDL_RenderClear(renderer);
@@ -510,8 +547,8 @@ int Window::TestWindow()
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------------------------------------
-
         const Uint64 now = SDL_GetPerformanceCounter();
+        deltaTime = static_cast<float>(now - last) / static_cast<float>(freq);
         fpsAccum += static_cast<double>(now - last) / static_cast<double>(freq);
         last = now;
         fpsCount += 1;
@@ -519,7 +556,7 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Chapter 12 - Phong %s  |  %s  |  eye z=%.2f  |  %.1f FPS  (%.2f ms/frame)",
+                "Particle System %s  |  %s  |  eye z=%.2f  |  %.1f FPS  (%.2f ms/frame)",
                 sp.lighting ? "ON" : "OFF", sp.bilinear ? "bilinear" : "nearest", eyeZ, fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
@@ -528,7 +565,7 @@ int Window::TestWindow()
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
         // ---------------------------------------------------------------------------------------------------------------------------------------
-
+        
     }
 
     SDL_DestroyTexture(texture);

@@ -30,7 +30,6 @@ target_compile_definitions(Platform PRIVATE
 
 target_compile_features(Platform PUBLIC cxx_std_20)
 
-# Your Vec/Matrix code uses SSE4.1 (_mm_dp_ps, _mm_blend_ps).
 if(MSVC)
     target_compile_options(Platform PRIVATE /W4 /permissive-)
 else()

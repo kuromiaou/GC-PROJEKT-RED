@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+class ParticleSystem;   // full definition lives in ParticleManager.h
+
 class Window
 {
 public:
@@ -50,40 +52,30 @@ private:
         int x1, int y1, float z1,
         int x2, int y2, float z2,
         float zmin, float zrange, bool useZBuffer);
-    inline void draw_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
+    inline void put_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
         int x1, int y1, float z1, float iw1, UV uv1,
         int x2, int y2, float z2, float iw2, UV uv2,
         const Texture* tex);
 
-    /// Everything the per-pixel shader needs besides the triangle itself.
     struct ShadeParams
     {
-        Maths::Vec3f L;          // unit vector surface -> light (world space)
-        Maths::Vec3f H;          // Blinn-Phong half-vector = normalize(L + V)
-        bool lighting = true;   // false: show the raw texture (chapter 9 look)
-        bool bilinear = true;   // false: nearest-neighbour (chapter 9 look)
+        Maths::Vec3f L;
+        Maths::Vec3f H;
+        bool lighting = true;
+        bool bilinear = true;
     };
 
-    /// One unit normal per triangle (model space). Degenerate triangles get a
-    /// zero normal instead of NaN.
     inline void compute_face_normals(const Mesh& mesh, std::vector<Maths::Vec3f>& out);
-    /// One unit normal per VERTEX (model space): the normalised sum of the
-    /// normals of every triangle touching it. This is what makes shading smooth.
     inline void compute_vertex_normals(const Mesh& mesh, const std::vector<Maths::Vec3f>& faceNormals,
         std::vector<Maths::Vec3f>& out);
-    /// Phong-shaded textured triangle. Vertices arrive in screen space with
-    /// depth, 1/w, UV and WORLD-space normal; normals and UVs are interpolated
-    /// perspective-correctly, the normal is re-normalised per pixel, and
-    /// Lambert diffuse + Blinn-Phong specular are evaluated per pixel.
-    inline void draw_triangle_phong(
+    inline void put_triangle_phong(
         int x0, int y0, float z0, float iw0, UV uv0, Maths::Vec3f n0,
         int x1, int y1, float z1, float iw1, UV uv1, Maths::Vec3f n1,
         int x2, int y2, float z2, float iw2, UV uv2, Maths::Vec3f n2,
         const Texture* tex, const ShadeParams& sp);
-    /// Takes one clipper-output triangle (3 clip-space vertices, all in front of
-    /// the near plane) through perspective divide, viewport, backface cull and
-    /// the rasterizer.
-    inline void project_and_draw(const ClipVertex* tri, const Texture* tex, const ShadeParams& sp);
+    inline void project_and_put(const ClipVertex* tri, const Texture* tex, const ShadeParams& sp);
+
+    void put_particles(const ParticleSystem& ps, const Maths::Matrix4x4& viewProj);
 
     std::vector<uint32_t> framebuffer;
     std::vector<float>    zbuffer;
