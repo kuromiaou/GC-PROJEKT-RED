@@ -334,7 +334,7 @@ void Window::put_particles(const ParticleSystem& ps, const Maths::Matrix4x4& vie
         _mm_storeu_ps(c, c4.reg);             // c = x, y, z, w
         const float w = c[3];
 
-        if (c[0] < -w || c[0] > w || c[1] < -w || c[1] > w || c[2] < -w || c[2] > w) continue;
+        //if (c[0] < -w || c[0] > w || c[1] < -w || c[1] > w || c[2] < -w || c[2] > w) continue;
 
         const float inv = 1.0f / w;
         const int   sx  = static_cast<int>((c[0] * inv + 1.0f) * 0.5f * WIDTH);
@@ -439,15 +439,15 @@ int Window::TestWindow()
     char   title[160];
 
 	ParticleSystem particleSystem;
-	for (int i = 0; i < 100; ++i) {
-		Particle p;
-        p.velocity[0] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
-        p.velocity[1] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
-        p.velocity[2] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
-        p.lifetime = static_cast<float>(rand()) / RAND_MAX * 5.0f;
-        p.initialLifetime = p.lifetime;
-		particleSystem.emit(p);
-	}
+	//for (int i = 0; i < 1000000; ++i) {
+	//	Particle p;
+ //       p.velocity[0] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+ //       p.velocity[1] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+ //       p.velocity[2] = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+ //       p.lifetime = static_cast<float>(rand()) / RAND_MAX * 5.0f;
+ //       p.initialLifetime = p.lifetime;
+	//	particleSystem.emit(p);
+	//}
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -510,9 +510,9 @@ int Window::TestWindow()
 
 		particleSystem.update(std::min(deltaTime, 0.05f));   // clamp: a stalled frame must not teleport everything
 
+
         clear(rgb(16, 16, 24));
         clear_zbuffer();
-
 
 
         const int nvi = static_cast<int>(nv);
@@ -556,8 +556,8 @@ int Window::TestWindow()
             const double fps = fpsCount / fpsAccum;
             const double ms = 1000.0 * fpsAccum / fpsCount;
             snprintf(title, sizeof title,
-                "Particle System %s  |  %s  |  eye z=%.2f  |  %.1f FPS  (%.2f ms/frame)",
-                sp.lighting ? "ON" : "OFF", sp.bilinear ? "bilinear" : "nearest", eyeZ, fps, ms);
+                "Particle System %s  |  eye z=%.2f  |  %.1f FPS  (%.2f ms/frame)",
+                sp.lighting ? "ON" : "OFF", eyeZ, fps, ms);
             SDL_SetWindowTitle(window, title);
             fpsAccum = 0.0;
             fpsCount = 0;

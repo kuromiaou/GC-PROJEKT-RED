@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
+#include <thread>
+#include <semaphore>
+#include <array>
 
 #include "Maths.h"
 #include "Mesh.h"      // UV
@@ -14,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-class ParticleSystem;   // full definition lives in ParticleManager.h
+class ParticleSystem; //fwd declaration
 
 class Window
 {
@@ -79,4 +82,21 @@ private:
 
     std::vector<uint32_t> framebuffer;
     std::vector<float>    zbuffer;
+
+    struct JobVertex { int x, y; float z, iw; UV uv; Maths::Vec3f n; };
+
+    struct TriangleJob {
+        JobVertex v[3];
+        const Texture texture;
+        const ShadeParams shadeParams;
+    };
+
+    std::array<std::binary_semaphore, 4> m_workerStart{
+           std::binary_semaphore{0}, std::binary_semaphore{0},
+           std::binary_semaphore{0}, std::binary_semaphore{0}
+    };
+    std::counting_semaphore<4> m_endSemaphore{ 0 };
+
+    std::vector<TriangleJob> m_jobs; //triangle temp
 };
+
