@@ -7,7 +7,7 @@ Single-precision (float) vector and matrix math in C++20, with a scalar referenc
 - CPU with SSE4.1 (the code uses `_mm_dp_ps`; ref. Limitations)
 
 ## Build
-1. Open `GC_PROJEKT_RED/MathsLib/MathStarter.sln`
+1. Open `"GC-PROJEKT-RED/GC_PROJEKT_RED/CMakeLists.txt"`
 2. Select **Release | x64**, build
 3. The executable is `MathsLib/bin/x64/Release/MathsLib.exe`
 

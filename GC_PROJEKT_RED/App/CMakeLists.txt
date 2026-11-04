@@ -3,7 +3,5 @@ add_executable(App
 )
 
 target_link_libraries(App
-    PRIVATE Renderer
     PRIVATE Platform
-
 )

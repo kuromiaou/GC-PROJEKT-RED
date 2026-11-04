@@ -47,26 +47,6 @@ inline uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (0xFFu << 24) | (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
 }
-inline void Window::put_pixel(int x, int y, uint32_t color)
-{
-    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
-    framebuffer[static_cast<size_t>(y) * WIDTH + x] = color;
-}
-inline void Window::put_line(int x0, int y0, int x1, int y1, uint32_t color) {
-    int dx = abs(x1 - x0);
-    int dy = -abs(y1 - y0);             // negative on purpose
-    int sx = (x0 < x1) ? 1 : -1;
-    int sy = (y0 < y1) ? 1 : -1;
-    int err = dx + dy;                   // = dx - |dy|
-
-    for (;;) {
-        put_pixel(x0, y0, color);
-        if (x0 == x1 && y0 == y1) break;
-        int e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }   // step in x
-        if (e2 <= dx) { err += dx; y0 += sy; }   // step in y
-    }
-}
 inline int Window::edge(int ax, int ay, int bx, int by, int px, int py) {
     return (bx - ax) * (py - ay) - (by - ay) * (px - ax);
 }
@@ -83,58 +63,6 @@ inline uint32_t Window::shade(int e0, int e1, int e2, int wsum,
         + e2 * (c2 & 0xFF)) / wsum);
     return rgb(r, g, b);
 }
-inline void Window::put_triangle(int x0, int y0, uint32_t c0,
-    int x1, int y1, uint32_t c1,
-    int x2, int y2, uint32_t c2) {
-    int area = edge(x0, y0, x1, y1, x2, y2);
-    if (area == 0) return;
-    if (area < 0) {
-        int tx = x1; int ty = y1; uint32_t tc = c1;
-        x1 = x2; y1 = y2; c1 = c2;
-        x2 = tx; y2 = ty; c2 = tc;
-        area = -area;
-    }
-
-    int minx = x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
-    int miny = y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
-    int maxx = x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
-    int maxy = y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2);
-    if (minx < 0) minx = 0;
-    if (miny < 0) miny = 0;
-    if (maxx >= WIDTH)  maxx = WIDTH - 1;
-    if (maxy >= HEIGHT) maxy = HEIGHT - 1;
-
-    for (int y = miny; y <= maxy; y++) {
-        for (int x = minx; x <= maxx; x++) {
-            int e0 = edge(x1, y1, x2, y2, x, y);
-            int e1 = edge(x2, y2, x0, y0, x, y);
-            int e2 = edge(x0, y0, x1, y1, x, y);
-            if ((e0 | e1 | e2) >= 0) {
-                framebuffer[static_cast<size_t>(y) * WIDTH + x] =
-                    shade(e0, e1, e2, area, c0, c1, c2);
-            }
-        }
-    }
-}
-
-void Window::put_circle(int cx, int cy, int r, uint32_t color) {
-    int x = 0;
-    int y = r;
-    int d = 3 - 2 * r;
-    while (x <= y) {
-        put_pixel(cx + x, cy + y, color);
-        put_pixel(cx - x, cy + y, color);
-        put_pixel(cx + x, cy - y, color);
-        put_pixel(cx - x, cy - y, color);
-        put_pixel(cx + y, cy + x, color);
-        put_pixel(cx - y, cy + x, color);
-        put_pixel(cx + y, cy - x, color);
-        put_pixel(cx - y, cy - x, color);
-        x++;
-        if (d > 0) { y--; d += 4 * (x - y) + 10; }
-        else { d += 4 * x + 6; }
-    }
-}
 
 void Window::clear(uint32_t color) {
     std::fill(framebuffer.begin(), framebuffer.end(), color);
@@ -144,45 +72,6 @@ void Window::clear_zbuffer() {
     std::fill(zbuffer.begin(), zbuffer.end(), 1e30f);
 }
 
-void Window::put_triangle_z(int x0, int y0, float z0,
-    int x1, int y1, float z1,
-    int x2, int y2, float z2,
-    float zmin, float zrange, bool useZBuffer) {
-    int area = edge(x0, y0, x1, y1, x2, y2);
-    if (area == 0) return;
-
-
-    if (area < 0) {
-        std::swap(x1, x2); std::swap(y1, y2); std::swap(z1, z2);
-        area = -area;
-    }
-
-    const int minx = std::clamp(std::min({ x0, x1, x2 }), 0, WIDTH - 1);
-    const int miny = std::clamp(std::min({ y0, y1, y2 }), 0, HEIGHT - 1);
-    const int maxx = std::clamp(std::max({ x0, x1, x2 }), 0, WIDTH - 1);
-    const int maxy = std::clamp(std::max({ y0, y1, y2 }), 0, HEIGHT - 1);
-
-    const float invArea = 1.0f / static_cast<float>(area);
-
-    for (int y = miny; y <= maxy; y++) {
-        for (int x = minx; x <= maxx; x++) {
-            const int e0 = edge(x1, y1, x2, y2, x, y);
-            const int e1 = edge(x2, y2, x0, y0, x, y);
-            const int e2 = edge(x0, y0, x1, y1, x, y);
-            if ((e0 | e1 | e2) < 0) continue;
-            const float z = (e0 * z0 + e1 * z1 + e2 * z2) * invArea;
-
-            const size_t idx = static_cast<size_t>(y) * WIDTH + x;
-            if (useZBuffer) {
-                if (z >= zbuffer[idx]) continue;
-                zbuffer[idx] = z;
-            }
-            const float far01 = (z - zmin) / zrange;
-            const int level = std::clamp(240 - static_cast<int>(far01 * 200.0f), 0, 255);
-            framebuffer[idx] = rgb((uint8_t)level, (uint8_t)level, (uint8_t)level);
-        }
-    }
-}
 void Window::compute_face_normals(const Mesh& mesh, std::vector<Maths::Vec3f>& out)
 {
     const int faceCount = mesh.FaceCount();
@@ -262,7 +151,7 @@ void Window::put_triangle_phong(
             const float l1 = e1 * inv_area;
             const float l2 = e2 * inv_area;
 
-            const float z = l0 * z0 + l1 * z1 + l2 * z2;     // linear on screen (chapter 7)
+            const float z = l0 * z0 + l1 * z1 + l2 * z2;
             const size_t idx = static_cast<size_t>(y) * WIDTH + x;
             if (z >= zbuffer[idx]) continue;
 
@@ -448,6 +337,7 @@ int Window::TestWindow()
  //       p.initialLifetime = p.lifetime;
 	//	particleSystem.emit(p);
 	//}
+
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
