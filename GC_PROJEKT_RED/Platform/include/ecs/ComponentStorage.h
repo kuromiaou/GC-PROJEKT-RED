@@ -1,29 +1,38 @@
-#include <cassert>
-#include <cstddef>
+#pragma once
 #include <vector>
+#include <array>
+#include <cassert>
+#include <cstdint>
 
-// entity == int => index dans le tableau component
-//array TComponent + array bool   toujours la même taille
-
-//void add(int entity, T& value);
-//void remove(int entity);
-//bool has(int entity);
-//T& get(int entity);
-
-class ComponentStorage
-{
+template <typename T>
+class ComponentStorage {
 public:
+    void add(int entity, const T& value) {
+        if (has(entity) return;
+        if (entity >= sparse.size()) sparse.resize(entity + 1);
+        dense.push_back(entity);
+        components.push_back(value);
+        sparse[entity] = dense.size()-1;
+    }
 
-	void add(int entity, );
+    void remove(int entity) {
+        if (inSparse(entity));
+    }
+
+    bool has(int entity) const {
+        return inSparse(entity) && inDense(sparse[entity]) && dense[sparse[entity]] == entity;
+    }
+
+    // Précondition : has(entity).
+    T& get(int entity) {
+        assert(has(entity) && "get : l'entité n'a pas ce composant");
+        return components[entity];
+    }
 
 private:
-	std::vector
+    static bool inSparse(int entity) { return entity >= 0 && entity < sparse.size() }
+    static bool inDense(int entity) { return entity >= 0 && entity < dense.size() }
+    std::vector<std::uint32_t> dense{};
+    std::vector<T>  components{};
+    std::vector<std::uint32_t> sparse{};
 };
-
-ComponentStorage::ComponentStorage()
-{
-}
-
-ComponentStorage::~ComponentStorage()
-{
-}
