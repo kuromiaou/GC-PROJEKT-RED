@@ -13,9 +13,6 @@ struct UV
     float v = 0.0f;
 };
 
-// Indexed triangle mesh loaded from a Wavefront OBJ.
-// Reads 'v', 'vt' and 'f' lines; triangulated meshes only, no 'vn' (normals
-// are computed by the renderer), no quads, no negative indices, no materials.
 struct Mesh
 {
     std::vector<Maths::Vec3f> verts;

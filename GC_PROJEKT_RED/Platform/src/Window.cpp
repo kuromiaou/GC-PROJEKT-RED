@@ -404,7 +404,7 @@ int Window::TestWindow()
         clear(rgb(16, 16, 24));
         clear_zbuffer();
 
-
+		//mesh drawing
         const int nvi = static_cast<int>(nv);
         for (int f = 0; f < mesh.FaceCount(); f++) {
             const int a = mesh.faces[f * 3 + 0];

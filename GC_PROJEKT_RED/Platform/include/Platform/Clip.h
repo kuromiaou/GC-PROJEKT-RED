@@ -1,12 +1,5 @@
 #pragma once
 
-// Near-plane triangle clipping (Sutherland-Hodgman) in CLIP space, before the
-// perspective divide. A triangle straddling the near plane is recut into 1 or
-// 2 triangles that are fully in front; every attribute is interpolated along
-// the cut edges.
-//
-// Inside test (near plane is NDC z = -1):  z + w >= 0
-
 struct ClipVertex
 {
     float x, y, z, w;     // clip-space position (post-MVP, pre-divide)
