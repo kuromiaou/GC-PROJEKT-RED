@@ -380,27 +380,27 @@ int Window::TestWindow()
         const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
             Maths::Vec3f(0, 0, eyeZ), Maths::Vec3f(0, 0, eyeZ - 1.0f), Maths::Vec3f(0, 1, 0));
 
-        const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * 0.7f);
+        const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * .7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
 
         for (size_t i = 0; i < nv; i++) {
             const Maths::Vec3f& p = mesh.verts[i];
-            const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f);
+			const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f); // w = 1: point (translation)
             float cv[4];
             _mm_storeu_ps(cv, clip.reg);            // cv = x, y, z, w
 
             const Maths::Vec3f& vn = vertexNormals[i];
-            const Maths::Vec3f nw((model * Maths::Vec4f(vn.X(), vn.Y(), vn.Z(), 0.0f)).reg);   // w = 0: direction
+            const Maths::Vec3f nw((model * Maths::Vec4f(vn.X(), vn.Y(), vn.Z(), 0.0f)).reg);   // w = 0: direction (no translation)
 
             ClipVertex& c = clipVerts[i];
             c.x = cv[0]; c.y = cv[1]; c.z = cv[2]; c.w = cv[3];
             c.nx = nw.X(); c.ny = nw.Y(); c.nz = nw.Z();
-            c.u = c.v = 0.0f;                       // set per face below
+            c.u = c.v = 0.0f;
         }
 
 		particleSystem.update(std::min(deltaTime, 0.05f));   // clamp: a stalled frame must not teleport everything
 
-
+        
         clear(rgb(16, 16, 24));
         clear_zbuffer();
 
