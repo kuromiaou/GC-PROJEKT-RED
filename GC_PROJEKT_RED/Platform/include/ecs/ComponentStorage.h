@@ -16,11 +16,10 @@ public:
 
     void remove(EntityId entity) {
         if (!has(entity)) return;
-        int max = dense.size() - 1;
-        std::move()
+        std::uint32_t max = dense.size() - 1;
         dense[sparse[entity]] = dense[max];
         components[sparse[entity]] = components[max];
-        sparse[dense[max]] = entity;
+        sparse[dense[max]] = sparse[entity];
         dense.pop_back();
         components.pop_back();
 
