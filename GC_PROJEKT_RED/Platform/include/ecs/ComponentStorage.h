@@ -2,9 +2,10 @@
 #include <vector>
 #include <cassert>
 #include "Entity.h"
+#include "IComponentStorage.h"
 
 template <typename T>
-class ComponentStorage {
+class ComponentStorage : public IComponentStorage {
 public:
     void add(EntityId entity, const T& value) {
         if (has(entity)) return;
@@ -14,7 +15,7 @@ public:
         sparse[entity] = dense.size() - 1;
     }
 
-    void remove(EntityId entity) {
+    void remove(EntityId entity) override {
         if (!has(entity)) return;
         std::uint32_t max = dense.size() - 1;
         dense[sparse[entity]] = dense[max];
@@ -25,14 +26,14 @@ public:
 
     }
 
-    bool has(EntityId entity) const {
+    bool has(EntityId entity) const override {
         return inSparse(entity) && inDense(sparse[entity]) && dense[sparse[entity]] == entity;
     };
     
     // Précondition : has(entity).
     T& get(EntityId entity) {
         assert(has(entity) && "get : l'entité n'a pas ce composant");
-        return components[entity];
+        return components[sparse[entity]];
     }
 
 private:
