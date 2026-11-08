@@ -79,4 +79,8 @@ private:
     std::counting_semaphore<4> m_endSemaphore{ 0 };
 
     std::vector<TriangleJob> m_jobs; //triangle temp
+
+    void draw_mesh(const Mesh& mesh, const std::vector<Maths::Vec3f>& vertexNormals,
+        const Maths::Matrix4x4& model, const Maths::Matrix4x4& viewProjection,
+        const Texture* tex, const ShadeParams& sp);
 };

@@ -249,6 +249,54 @@ void Window::put_particles(const ParticleSystem& ps, const Maths::Matrix4x4& vie
     }
 }
 
+void Window::draw_mesh(const Mesh& mesh, const std::vector<Maths::Vec3f>& vertexNormals,
+    const Maths::Matrix4x4& model, const Maths::Matrix4x4& viewProjection,
+    const Texture* tex, const ShadeParams& sp)
+{
+    const Maths::Matrix4x4 mvp = viewProjection * model;
+    const size_t nv = mesh.verts.size();
+    std::vector<ClipVertex> clipVerts(nv);
+
+    // 1. Transformation des sommets en clip space
+    for (size_t i = 0; i < nv; i++) {
+        const Maths::Vec3f& p = mesh.verts[i];
+        const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f); // w = 1: point (translation)
+        float cv[4];
+        _mm_storeu_ps(cv, clip.reg);            // cv = x, y, z, w
+
+        const Maths::Vec3f& vn = vertexNormals[i];
+        const Maths::Vec3f nw((model * Maths::Vec4f(vn.X(), vn.Y(), vn.Z(), 0.0f)).reg);   // w = 0: direction (no translation)
+
+        ClipVertex& c = clipVerts[i];
+        c.x = cv[0]; c.y = cv[1]; c.z = cv[2]; c.w = cv[3];
+        c.nx = nw.X(); c.ny = nw.Y(); c.nz = nw.Z();
+        c.u = c.v = 0.0f;
+    }
+
+    // 2. Clipping et dessin de chaque face
+    const int nvi = static_cast<int>(nv);
+    for (int f = 0; f < mesh.FaceCount(); f++) {
+        const int a = mesh.faces[f * 3 + 0];
+        const int b = mesh.faces[f * 3 + 1];
+        const int c = mesh.faces[f * 3 + 2];
+        if (a < 0 || b < 0 || c < 0 || a >= nvi || b >= nvi || c >= nvi) continue;   // bad OBJ index
+
+        const int ua = mesh.faceUvs[f * 3 + 0];
+        const int ub = mesh.faceUvs[f * 3 + 1];
+        const int uc = mesh.faceUvs[f * 3 + 2];
+
+        ClipVertex v0 = clipVerts[a], v1 = clipVerts[b], v2 = clipVerts[c];
+        if (ua >= 0) { v0.u = mesh.uvs[ua].u; v0.v = mesh.uvs[ua].v; }
+        if (ub >= 0) { v1.u = mesh.uvs[ub].u; v1.v = mesh.uvs[ub].v; }
+        if (uc >= 0) { v2.u = mesh.uvs[uc].u; v2.v = mesh.uvs[uc].v; }
+
+        ClipVertex out[6];
+        const int nTris = Clip::ClipTriangleNear(v0, v1, v2, out);
+        for (int t = 0; t < nTris; t++)
+            project_and_put(&out[t * 3], tex, sp);
+    }
+}
+
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -297,9 +345,6 @@ int Window::TestWindow()
 
     const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(
         Maths::Matrix4x4::radians(50.0f), aspect, zNear, 100.0f);
-
-    const size_t nv = mesh.verts.size();
-    std::vector<ClipVertex> clipVerts(nv);
 
     Texture tex_herbe;
     if (!tex_herbe.Load(std::string(WARP_ASSET_DIR) + "/herbe.png")) {
@@ -412,56 +457,15 @@ int Window::TestWindow()
 
         const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
             Maths::Vec3f(0, eyeZ, eyeZ), Maths::Vec3f(0, 0, 0), Maths::Vec3f(0, 1, 0));
-        //const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
-        //    Maths::Vec3f(0, 0, eyeZ), Maths::Vec3f(0, 0, eyeZ - 1.0f), Maths::Vec3f(0, 1, 0));
 
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * .7f);
-        const Maths::Matrix4x4 mvp = projection * (view * model);
 
-        for (size_t i = 0; i < nv; i++) {
-            const Maths::Vec3f& p = mesh.verts[i];
-			const Maths::Vec4f clip = mvp * Maths::Vec4f(p.X(), p.Y(), p.Z(), 1.0f); // w = 1: point (translation)
-            float cv[4];
-            _mm_storeu_ps(cv, clip.reg);            // cv = x, y, z, w
+        particleSystem.update(std::min(deltaTime, 0.05f));   // clamp: a stalled frame must not teleport everything
 
-            const Maths::Vec3f& vn = vertexNormals[i];
-            const Maths::Vec3f nw((model * Maths::Vec4f(vn.X(), vn.Y(), vn.Z(), 0.0f)).reg);   // w = 0: direction (no translation)
-
-            ClipVertex& c = clipVerts[i];
-            c.x = cv[0]; c.y = cv[1]; c.z = cv[2]; c.w = cv[3];
-            c.nx = nw.X(); c.ny = nw.Y(); c.nz = nw.Z();
-            c.u = c.v = 0.0f;
-        }
-
-		particleSystem.update(std::min(deltaTime, 0.05f));   // clamp: a stalled frame must not teleport everything
-
-        
         clear(rgb(16, 16, 24));
         clear_zbuffer();
 
-		//mesh drawing
-        const int nvi = static_cast<int>(nv);
-        for (int f = 0; f < mesh.FaceCount(); f++) {
-            const int a = mesh.faces[f * 3 + 0];
-            const int b = mesh.faces[f * 3 + 1];
-            const int c = mesh.faces[f * 3 + 2];
-            if (a < 0 || b < 0 || c < 0 || a >= nvi || b >= nvi || c >= nvi) continue;   // bad OBJ index
-
-            const int ua = mesh.faceUvs[f * 3 + 0];
-            const int ub = mesh.faceUvs[f * 3 + 1];
-            const int uc = mesh.faceUvs[f * 3 + 2];
-
-            ClipVertex v0 = clipVerts[a], v1 = clipVerts[b], v2 = clipVerts[c];
-            if (ua >= 0) { v0.u = mesh.uvs[ua].u; v0.v = mesh.uvs[ua].v; }
-            if (ub >= 0) { v1.u = mesh.uvs[ub].u; v1.v = mesh.uvs[ub].v; }
-            if (uc >= 0) { v2.u = mesh.uvs[uc].u; v2.v = mesh.uvs[uc].v; }
-
-            ClipVertex out[6];
-            const int nTris = Clip::ClipTriangleNear(v0, v1, v2, out);
-            for (int t = 0; t < nTris; t++)
-                project_and_put(&out[t * 3], &tex_herbe, sp);
-        }
-
+        draw_mesh(mesh, vertexNormals, model, projection * view, &tex_herbe, sp);
 
         put_particles(particleSystem, projection * view);
         canvas.Draw(framebuffer, WIDTH, HEIGHT);
@@ -488,10 +492,6 @@ int Window::TestWindow()
             fpsAccum = 0.0;
             fpsCount = 0;
         }
-
-        // ---------------------------------------------------------------------------------------------------------------------------------------
-        // ---------------------------------------------------------------------------------------------------------------------------------------
-        
     }
 
     SDL_DestroyTexture(texture);
