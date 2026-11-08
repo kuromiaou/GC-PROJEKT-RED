@@ -46,6 +46,8 @@ private:
         Maths::Vec3f H;
         bool lighting = true;
         bool bilinear = true;
+        float ambient = 0.18f;
+        float specularStrength = 0.55f;
     };
 
     inline void compute_face_normals(const Mesh& mesh, std::vector<Maths::Vec3f>& out);
