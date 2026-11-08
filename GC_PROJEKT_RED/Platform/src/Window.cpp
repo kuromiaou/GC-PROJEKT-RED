@@ -1,5 +1,4 @@
 #include "Platform/Window.h"
-#include "Platform/Obj.h"
 #include "Platform/Mesh.h"
 #include "Platform/Texture.h"
 #include "Platform/Clip.h"
@@ -55,19 +54,6 @@ inline uint32_t Window::rgb(uint8_t r, uint8_t g, uint8_t b)
 }
 inline int Window::edge(int ax, int ay, int bx, int by, int px, int py) {
     return (bx - ax) * (py - ay) - (by - ay) * (px - ax);
-}
-inline uint32_t Window::shade(int e0, int e1, int e2, int wsum,
-    uint32_t c0, uint32_t c1, uint32_t c2) {
-    uint8_t r = (uint8_t)((e0 * ((c0 >> 16) & 0xFF)
-        + e1 * ((c1 >> 16) & 0xFF)
-        + e2 * ((c2 >> 16) & 0xFF)) / wsum);
-    uint8_t g = (uint8_t)((e0 * ((c0 >> 8) & 0xFF)
-        + e1 * ((c1 >> 8) & 0xFF)
-        + e2 * ((c2 >> 8) & 0xFF)) / wsum);
-    uint8_t b = (uint8_t)((e0 * (c0 & 0xFF)
-        + e1 * (c1 & 0xFF)
-        + e2 * (c2 & 0xFF)) / wsum);
-    return rgb(r, g, b);
 }
 
 void Window::clear(uint32_t color) {

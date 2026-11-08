@@ -37,10 +37,10 @@ private:
         uint32_t c0, uint32_t c1, uint32_t c2);
     inline void clear(uint32_t color);
     inline void clear_zbuffer();
-    inline void put_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
-        int x1, int y1, float z1, float iw1, UV uv1,
-        int x2, int y2, float z2, float iw2, UV uv2,
-        const Texture* tex);
+    //inline void put_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
+    //    int x1, int y1, float z1, float iw1, UV uv1,
+    //    int x2, int y2, float z2, float iw2, UV uv2,
+    //    const Texture* tex);
 
     struct ShadeParams
     {
@@ -68,21 +68,21 @@ private:
     std::vector<uint32_t> framebuffer;
     std::vector<float>    zbuffer;
 
-    struct JobVertex { int x, y; float z, iw; UV uv; Maths::Vec3f n; };
+    //struct JobVertex { int x, y; float z, iw; UV uv; Maths::Vec3f n; };
 
-    struct TriangleJob {
-        JobVertex v[3];
-        const Texture texture;
-        const ShadeParams shadeParams;
-    };
+    //struct TriangleJob {
+    //    JobVertex v[3];
+    //    const Texture texture;
+    //    const ShadeParams shadeParams;
+    //};
 
-    std::array<std::binary_semaphore, 4> m_workerStart{
-           std::binary_semaphore{0}, std::binary_semaphore{0},
-           std::binary_semaphore{0}, std::binary_semaphore{0}
-    };
-    std::counting_semaphore<4> m_endSemaphore{ 0 };
+    //std::array<std::binary_semaphore, 4> m_workerStart{
+    //       std::binary_semaphore{0}, std::binary_semaphore{0},
+    //       std::binary_semaphore{0}, std::binary_semaphore{0}
+    //};
+    //std::counting_semaphore<4> m_endSemaphore{ 0 };
 
-    std::vector<TriangleJob> m_jobs; //triangle temp
+    //std::vector<TriangleJob> m_jobs; //triangle temp
 
     void draw_mesh(const Mesh& mesh, const std::vector<Maths::Vec3f>& vertexNormals,
         const Maths::Matrix4x4& model, const Maths::Matrix4x4& viewProjection,
