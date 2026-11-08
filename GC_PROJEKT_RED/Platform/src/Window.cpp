@@ -5,6 +5,7 @@
 #include "Platform/Clip.h"
 #include "Platform/ParticleManager.h"
 #include "editor/Terrain.h"
+#include "ui/Canvas.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
@@ -309,6 +310,17 @@ int Window::TestWindow()
         return 1;
     }
 
+    Canvas canvas;
+
+    Image overlay;
+    overlay.texture = &tex;
+    overlay.x = 20;
+    overlay.y = 20;
+    overlay.width = 150;
+    overlay.height = 150;
+    overlay.opacity = 0.5f;
+    canvas.AddImage(overlay);
+
     std::vector<Maths::Vec3f> faceNormals;
     compute_face_normals(mesh, faceNormals);
     std::vector<Maths::Vec3f> vertexNormals;
@@ -432,6 +444,7 @@ int Window::TestWindow()
 
 
         put_particles(particleSystem, projection * view);
+        canvas.Draw(framebuffer, WIDTH, HEIGHT);
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
         SDL_RenderClear(renderer);
