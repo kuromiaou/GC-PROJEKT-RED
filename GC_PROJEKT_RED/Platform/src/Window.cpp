@@ -280,7 +280,7 @@ int Window::TestWindow()
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
-    Mesh mesh = GenerateTerrain(4, 1.0f);
+    Mesh mesh = GenerateTerrain(64, 0.1f);
     //Mesh mesh;
     //if (!mesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) {
     //    SDL_DestroyTexture(texture);
@@ -378,9 +378,10 @@ int Window::TestWindow()
         const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / static_cast<double>(freq);
         const float angle = static_cast<float>(seconds);
 
-
         const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
-            Maths::Vec3f(0, 0, eyeZ), Maths::Vec3f(0, 0, eyeZ - 1.0f), Maths::Vec3f(0, 1, 0));
+            Maths::Vec3f(0, eyeZ, eyeZ), Maths::Vec3f(0, 0, 0), Maths::Vec3f(0, 1, 0));
+        //const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
+        //    Maths::Vec3f(0, 0, eyeZ), Maths::Vec3f(0, 0, eyeZ - 1.0f), Maths::Vec3f(0, 1, 0));
 
         const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * .7f);
         const Maths::Matrix4x4 mvp = projection * (view * model);
