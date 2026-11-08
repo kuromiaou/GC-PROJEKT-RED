@@ -55,6 +55,7 @@ namespace
         return total / maxValue;
     }
 }
+const float textureRepeat = 2.0f;
 Mesh GenerateTerrain(int size, float spacing)
 {
     Mesh mesh;
@@ -68,8 +69,8 @@ Mesh GenerateTerrain(int size, float spacing)
             const float y = FractalNoise(x * 0.3f, z * 0.3f, 4) * 1.5f;
             mesh.verts.emplace_back(x, y, z);
 
-            const float u = static_cast<float>(col) / static_cast<float>(size);
-            const float v = static_cast<float>(row) / static_cast<float>(size);
+            const float u = static_cast<float>(col) / static_cast<float>(size) * textureRepeat;
+            const float v = static_cast<float>(row) / static_cast<float>(size) * textureRepeat;
             mesh.uvs.push_back({ u, v });
         }
     }

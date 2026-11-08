@@ -301,7 +301,7 @@ int Window::TestWindow()
     std::vector<ClipVertex> clipVerts(nv);
 
     Texture tex;
-    if (!tex.Load(std::string(WARP_ASSET_DIR) + "/spot_texture.png")) {
+    if (!tex.Load(std::string(WARP_ASSET_DIR) + "/herbe.png")) {
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
