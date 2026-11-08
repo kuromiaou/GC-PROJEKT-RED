@@ -6,6 +6,7 @@ target_sources(Platform
     src/Window.cpp
     src/Mesh.cpp
     src/Texture.cpp
+    src/Terrain.cpp
 )
 
 target_include_directories(Platform

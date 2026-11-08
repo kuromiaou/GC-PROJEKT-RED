@@ -4,6 +4,7 @@
 #include "Platform/Texture.h"
 #include "Platform/Clip.h"
 #include "Platform/ParticleManager.h"
+#include "editor/Terrain.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_stdinc.h>
@@ -279,14 +280,15 @@ int Window::TestWindow()
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
-    Mesh mesh;
-    if (!mesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) {
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
+    Mesh mesh = GenerateTerrain(4, 1.0f);
+    //Mesh mesh;
+    //if (!mesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) {
+    //    SDL_DestroyTexture(texture);
+    //    SDL_DestroyRenderer(renderer);
+    //    SDL_DestroyWindow(window);
+    //    SDL_Quit();
+    //    return 1;
+    //}
     std::printf("loaded spot.obj: %d vertices, %d faces\n", mesh.VertexCount(), mesh.FaceCount());
 
     const float aspect = (float)WIDTH / (float)HEIGHT;
