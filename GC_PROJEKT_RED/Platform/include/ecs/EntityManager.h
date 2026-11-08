@@ -60,6 +60,11 @@ public:
         return getStorage<T>().get(entity);
     }
 
+    template <typename T>
+    const std::vector<EntityId>& entitiesWith() {
+        return getStorage<T>().entities();
+    }
+
 private:
     template <typename T>
     ComponentStorage<T>& getStorage() {

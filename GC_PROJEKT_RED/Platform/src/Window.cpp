@@ -35,6 +35,14 @@ namespace
         return (0xFFu << 24) | (static_cast<uint32_t>(r) << 16)
             | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
     }
+
+    void rotation_system(EntityManager& entityManager, float deltaTime)
+    {
+        for (EntityId entity : entityManager.entitiesWith<Transform>()) {
+            Transform& transform = entityManager.getComponent<Transform>(entity);
+            transform.rotationY += transform.rotationSpeed * deltaTime;
+        }
+    }
 }
 
 Window::Window()
@@ -293,6 +301,29 @@ void Window::draw_mesh(const Mesh& mesh, const std::vector<Maths::Vec3f>& vertex
     }
 }
 
+// Système : dessine chaque entité qui a un MeshRenderer et un Transform
+void Window::render_system(EntityManager& entityManager, const Maths::Matrix4x4& viewProjection,
+    const ShadeParams& light)
+{
+    for (EntityId entity : entityManager.entitiesWith<MeshRenderer>()) {
+        if (!entityManager.hasComponent<Transform>(entity)) continue;
+
+        const MeshRenderer& renderer = entityManager.getComponent<MeshRenderer>(entity);
+        const Transform& transform = entityManager.getComponent<Transform>(entity);
+
+        // L'éclairage de la scène, combiné au matériau de l'objet
+        ShadeParams sp = light;
+        sp.lighting = light.lighting && renderer.material.lighting;
+        sp.bilinear = renderer.material.bilinear;
+        sp.ambient = renderer.material.ambient;
+        sp.specularStrength = renderer.material.specularStrength;
+
+        const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(transform.rotationY);
+        draw_mesh(*renderer.mesh, renderer.vertexNormals, model, viewProjection,
+            renderer.material.texture, sp);
+    }
+}
+
 int Window::TestWindow()
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -387,6 +418,21 @@ int Window::TestWindow()
     std::vector<Maths::Vec3f> vertexNormals;
     compute_vertex_normals(mesh, faceNormals, vertexNormals);
 
+    EntityManager entityManager;
+
+    EntityId terrain = entityManager.createEntity();
+
+    MeshRenderer terrainRenderer;
+    terrainRenderer.mesh = &mesh;
+    terrainRenderer.vertexNormals = vertexNormals;
+    terrainRenderer.material.texture = &tex_herbe;
+    terrainRenderer.material.specularStrength = 0.0f;   // de l'herbe ne brille pas
+    entityManager.addComponent(terrain, terrainRenderer);
+
+    Transform terrainTransform;
+    terrainTransform.rotationSpeed = 0.7f;
+    entityManager.addComponent(terrain, terrainTransform);
+
     const Maths::Vec3f light = Maths::Vec3f(0.4f, 0.8f, 0.45f).Normalize();
 
     ShadeParams sp;
@@ -446,24 +492,27 @@ int Window::TestWindow()
         }
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
+        // Mise à jour
         // ---------------------------------------------------------------------------------------------------------------------------------------
 
-        const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / static_cast<double>(freq);
-        const float angle = static_cast<float>(seconds);
+        const float dt = std::min(deltaTime, 0.05f);   // clamp: a stalled frame must not teleport everything
+
+        rotation_system(entityManager, dt);
+        particleSystem.update(dt);
+
+        // ---------------------------------------------------------------------------------------------------------------------------------------
+        // Rendu
+        // ---------------------------------------------------------------------------------------------------------------------------------------
 
         const Maths::Matrix4x4 view = Maths::Matrix4x4::LookAt(
             Maths::Vec3f(0, eyeZ, eyeZ), Maths::Vec3f(0, 0, 0), Maths::Vec3f(0, 1, 0));
-
-        const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(angle * .7f);
-
-        particleSystem.update(std::min(deltaTime, 0.05f));   // clamp: a stalled frame must not teleport everything
+        const Maths::Matrix4x4 viewProjection = projection * view;
 
         clear(rgb(16, 16, 24));
         clear_zbuffer();
 
-        draw_mesh(mesh, vertexNormals, model, projection * view, &tex_herbe, sp);
-
-        put_particles(particleSystem, projection * view);
+        render_system(entityManager, viewProjection, sp);
+        put_particles(particleSystem, viewProjection);
         canvas.Draw(framebuffer, WIDTH, HEIGHT);
 
         SDL_UpdateTexture(texture, nullptr, framebuffer.data(), WIDTH * sizeof(uint32_t));
@@ -472,7 +521,9 @@ int Window::TestWindow()
         SDL_RenderPresent(renderer);
 
         // ---------------------------------------------------------------------------------------------------------------------------------------
+        // Temps et FPS
         // ---------------------------------------------------------------------------------------------------------------------------------------
+
         const Uint64 now = SDL_GetPerformanceCounter();
         deltaTime = static_cast<float>(now - last) / static_cast<float>(freq);
         fpsAccum += static_cast<double>(now - last) / static_cast<double>(freq);

@@ -7,6 +7,7 @@
 template <typename T>
 class ComponentStorage : public IComponentStorage {
 public:
+
     void add(EntityId entity, const T& value) {
         if (has(entity)) return;
         if (entity >= sparse.size()) sparse.resize(entity + 1);
@@ -35,6 +36,8 @@ public:
         assert(has(entity) && "get : l'entité n'a pas ce composant");
         return components[sparse[entity]];
     }
+
+    const std::vector<EntityId>& entities() const { return dense; }
 
 private:
     bool inSparse(EntityId entity) const { return entity < sparse.size(); };

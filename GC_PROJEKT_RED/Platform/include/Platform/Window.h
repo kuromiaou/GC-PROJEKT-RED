@@ -11,6 +11,8 @@
 #include "Mesh.h"      // UV
 #include "Texture.h"   // Texture
 #include "Clip.h"      // ClipVertex
+#include "ecs/EntityManager.h"
+#include "Components.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -85,4 +87,7 @@ private:
     void draw_mesh(const Mesh& mesh, const std::vector<Maths::Vec3f>& vertexNormals,
         const Maths::Matrix4x4& model, const Maths::Matrix4x4& viewProjection,
         const Texture* tex, const ShadeParams& sp);
+
+    void render_system(EntityManager& entityManager, const Maths::Matrix4x4& viewProjection,
+        const ShadeParams& light);
 };
