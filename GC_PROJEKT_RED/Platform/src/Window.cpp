@@ -18,10 +18,6 @@
 #define WARP_ASSET_DIR "assets"
 #endif
 
-#define AMBIENT 0.18f
-
-#define SPEC_STRENGTH 0.55f
-
 namespace
 {
     inline float pow32(float x)
@@ -181,10 +177,10 @@ void Window::put_triangle_phong(
                 }
 
                 const float ndotl = std::max(0.0f, Nx * Lx + Ny * Ly + Nz * Lz);
-                diffuse_k = AMBIENT + (1.0f - AMBIENT) * ndotl;
+                diffuse_k = sp.ambient + (1.0f - sp.ambient) * ndotl;
 
                 const float ndoth = std::max(0.0f, Nx * Hx + Ny * Hy + Nz * Hz);
-                spec_k = pow32(ndoth) * SPEC_STRENGTH;
+                spec_k = pow32(ndoth) * sp.specularStrength;
             }
 
             zbuffer[idx] = z;
