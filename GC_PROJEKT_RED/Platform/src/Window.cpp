@@ -318,7 +318,7 @@ void Window::render_system(EntityManager& entityManager, const Maths::Matrix4x4&
         sp.ambient = renderer.material.ambient;
         sp.specularStrength = renderer.material.specularStrength;
 
-        const Maths::Matrix4x4 model = Maths::Matrix4x4::RotationY(transform.rotationY);
+        const Maths::Matrix4x4 model = Maths::Matrix4x4::Translation(transform.position) * Maths::Matrix4x4::RotationY(transform.rotationY);
         draw_mesh(*renderer.mesh, renderer.vertexNormals, model, viewProjection,
             renderer.material.texture, sp);
     }
@@ -352,20 +352,19 @@ int Window::TestWindow()
         SDL_Quit();
         return 1;
     }
-
+    auto fail = [&]() {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+        };
     // ---------------------------------------------------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------------------------------------------------
 
-    Mesh mesh = GenerateTerrain(64, 0.1f);
-    //Mesh mesh;
-    //if (!mesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) {
-    //    SDL_DestroyTexture(texture);
-    //    SDL_DestroyRenderer(renderer);
-    //    SDL_DestroyWindow(window);
-    //    SDL_Quit();
-    //    return 1;
-    //}
-    std::printf("loaded spot.obj: %d vertices, %d faces\n", mesh.VertexCount(), mesh.FaceCount());
+    Mesh terrainmesh = GenerateTerrain(64, 0.1f);
+    std::printf("terrain generated: %d vertices, %d faces\n", terrainmesh.VertexCount(), terrainmesh.FaceCount());
+
 
     const float aspect = (float)WIDTH / (float)HEIGHT;
     const float zNear = 0.1f;
@@ -373,30 +372,16 @@ int Window::TestWindow()
     const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(
         Maths::Matrix4x4::radians(50.0f), aspect, zNear, 100.0f);
 
+    Mesh cowMesh;
+    if (!cowMesh.Load(std::string(WARP_ASSET_DIR) + "/spot.obj")) return fail();
+    Texture tex_cow;
+    if (!tex_cow.Load(std::string(WARP_ASSET_DIR) + "/spot_texture.png")) return fail();
     Texture tex_herbe;
-    if (!tex_herbe.Load(std::string(WARP_ASSET_DIR) + "/herbe.png")) {
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
+    if (!tex_herbe.Load(std::string(WARP_ASSET_DIR) + "/herbe.png")) {return fail();}
     Texture tex_bouton;
-    if (!tex_bouton.Load(std::string(WARP_ASSET_DIR) + "/bouton.png")) {
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
+    if (!tex_bouton.Load(std::string(WARP_ASSET_DIR) + "/bouton.png")) {return fail();}
     Texture tex_font;
-    if (!tex_font.Load(std::string(WARP_ASSET_DIR) + "/font.png")) {
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
+    if (!tex_font.Load(std::string(WARP_ASSET_DIR) + "/font.png")) {return fail();}
 
 
     Canvas canvas;
@@ -414,24 +399,41 @@ int Window::TestWindow()
     canvas.AddText(text);
 
     std::vector<Maths::Vec3f> faceNormals;
-    compute_face_normals(mesh, faceNormals);
+    compute_face_normals(terrainmesh, faceNormals);
     std::vector<Maths::Vec3f> vertexNormals;
-    compute_vertex_normals(mesh, faceNormals, vertexNormals);
+    compute_vertex_normals(terrainmesh, faceNormals, vertexNormals);
 
     EntityManager entityManager;
 
     EntityId terrain = entityManager.createEntity();
 
     MeshRenderer terrainRenderer;
-    terrainRenderer.mesh = &mesh;
+    terrainRenderer.mesh = &terrainmesh;
     terrainRenderer.vertexNormals = vertexNormals;
     terrainRenderer.material.texture = &tex_herbe;
     terrainRenderer.material.specularStrength = 0.0f;   // de l'herbe ne brille pas
     entityManager.addComponent(terrain, terrainRenderer);
 
     Transform terrainTransform;
-    terrainTransform.rotationSpeed = 0.7f;
     entityManager.addComponent(terrain, terrainTransform);
+
+    std::vector<Maths::Vec3f> cowFaceNormals;
+    compute_face_normals(cowMesh, cowFaceNormals);
+
+    EntityId cow = entityManager.createEntity();
+
+    MeshRenderer cowRenderer;
+    cowRenderer.mesh = &cowMesh;
+    compute_vertex_normals(cowMesh, cowFaceNormals, cowRenderer.vertexNormals);
+    cowRenderer.material.texture = &tex_cow;
+    cowRenderer.material.specularStrength = 0.55f;   // la vache brille
+    entityManager.addComponent(cow, cowRenderer);
+
+    Transform cowTransform;
+    cowTransform.position = Maths::Vec3f(0.0f, 1.5f, 0.0f);
+    cowTransform.rotationSpeed = -1.2f;           // tourne dans l'autre sens, plus vite
+    entityManager.addComponent(cow, cowTransform);
+
 
     const Maths::Vec3f light = Maths::Vec3f(0.4f, 0.8f, 0.45f).Normalize();
 

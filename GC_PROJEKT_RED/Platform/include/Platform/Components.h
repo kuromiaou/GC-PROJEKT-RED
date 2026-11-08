@@ -18,6 +18,7 @@ struct Material
 // Orientation d'un objet dans le monde
 struct Transform
 {
+    Maths::Vec3f position;
     float rotationY = 0.0f;           // angle actuel, en radians
     float rotationSpeed = 0.0f;       // vitesse de rotation, en radians par seconde
 };

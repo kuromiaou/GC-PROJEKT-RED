@@ -55,12 +55,13 @@ namespace
         return total / maxValue;
     }
 }
-const float textureRepeat = 2.0f;
+
 Mesh GenerateTerrain(int size, float spacing)
 {
     Mesh mesh;
     const int pointsPerRow = size + 1;
     const float halfWidth = size * spacing / 2.0f;
+    const float textureRepeat = 2.0f;
 
     for (int row = 0; row <= size; row++) {
         for (int col = 0; col <= size; col++) {
