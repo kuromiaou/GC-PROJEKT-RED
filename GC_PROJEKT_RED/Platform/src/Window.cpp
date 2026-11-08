@@ -301,8 +301,24 @@ int Window::TestWindow()
     const size_t nv = mesh.verts.size();
     std::vector<ClipVertex> clipVerts(nv);
 
-    Texture tex;
-    if (!tex.Load(std::string(WARP_ASSET_DIR) + "/herbe.png")) {
+    Texture tex_herbe;
+    if (!tex_herbe.Load(std::string(WARP_ASSET_DIR) + "/herbe.png")) {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    Texture tex_bouton;
+    if (!tex_bouton.Load(std::string(WARP_ASSET_DIR) + "/bouton.png")) {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    Texture tex_font;
+    if (!tex_font.Load(std::string(WARP_ASSET_DIR) + "/font.png")) {
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -310,16 +326,20 @@ int Window::TestWindow()
         return 1;
     }
 
+
     Canvas canvas;
 
     Image overlay;
-    overlay.texture = &tex;
+    overlay.texture = &tex_bouton;
     overlay.x = 20;
     overlay.y = 20;
     overlay.width = 150;
     overlay.height = 150;
     overlay.opacity = 0.5f;
     canvas.AddImage(overlay);
+
+    Text text{ .font = &tex_font, .content = "Hello World", .x = 20, .y = 200, .charSize = 16 };
+    canvas.AddText(text);
 
     std::vector<Maths::Vec3f> faceNormals;
     compute_face_normals(mesh, faceNormals);
@@ -439,7 +459,7 @@ int Window::TestWindow()
             ClipVertex out[6];
             const int nTris = Clip::ClipTriangleNear(v0, v1, v2, out);
             for (int t = 0; t < nTris; t++)
-                project_and_put(&out[t * 3], &tex, sp);
+                project_and_put(&out[t * 3], &tex_herbe, sp);
         }
 
 

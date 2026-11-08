@@ -27,12 +27,15 @@ void Canvas::Draw(std::vector<uint32_t>& framebuffer, int screenWidth, int scree
 {
     for (const Image& image : images)
         DrawImage(image, framebuffer, screenWidth, screenHeight);
+    for (const Text& text : texts)
+        DrawText(text, framebuffer, screenWidth, screenHeight);
+
 }
 
 void Canvas::DrawImage(const Image& image, std::vector<uint32_t>& framebuffer,
     int screenWidth, int screenHeight) const
 {
-    if (!image.texture || image.width <= 0 || image.height <= 0) return;
+    if (!image.texture || image.texture->Width() <= 0 || image.width <= 0 || image.height <= 0) return;
 
     for (int py = 0; py < image.height; py++) {
         for (int px = 0; px < image.width; px++) {
@@ -40,8 +43,8 @@ void Canvas::DrawImage(const Image& image, std::vector<uint32_t>& framebuffer,
             const int sy = image.y + py;
             if (sx < 0 || sy < 0 || sx >= screenWidth || sy >= screenHeight) continue;
 
-            const float u = static_cast<float>(px) / static_cast<float>(image.width);
-            const float v = 1 - static_cast<float>(py) / static_cast<float>(image.height);
+            const float u = image.srcX + static_cast<float>(px) / static_cast<float>(image.width) * image.srcW;
+            const float v = 1.0f - (image.srcY + static_cast<float>(py) / static_cast<float>(image.height) * image.srcH);
 
             const uint32_t texel = image.texture->Sample(u, v);
             const float alpha = static_cast<float>((texel >> 24) & 0xFF) / 255.0f * image.opacity;
@@ -50,5 +53,39 @@ void Canvas::DrawImage(const Image& image, std::vector<uint32_t>& framebuffer,
             const size_t idx = static_cast<size_t>(sy) * screenWidth + sx;
             framebuffer[idx] = Blend(texel, framebuffer[idx], alpha);
         }
+    }
+}
+
+void Canvas::AddText(const Text& text)
+{
+    texts.push_back(text);
+}
+
+void Canvas::DrawText(const Text& text, std::vector<uint32_t>& framebuffer,
+    int screenWidth, int screenHeight) const
+{
+    const int gridSize = 16;                              // 16 × 16 caractères dans la police
+    const float cell = 1.0f / static_cast<float>(gridSize);
+
+    for (size_t i = 0; i < text.content.size(); i++) {
+        const unsigned char c = static_cast<unsigned char>(text.content[i]);
+
+  
+        const int col = c % 16;
+        const int row = c / 16;
+
+        Image glyph;
+        glyph.texture = text.font;
+        glyph.x = text.x + static_cast<int>(i) * text.charSize;
+        glyph.y = text.y;
+        glyph.width = text.charSize;
+        glyph.height = text.charSize;
+        glyph.opacity = text.opacity;
+        glyph.srcX = col * cell;
+        glyph.srcY = row * cell;
+        glyph.srcW = cell;
+        glyph.srcH = cell;
+
+        DrawImage(glyph, framebuffer, screenWidth, screenHeight);
     }
 }
