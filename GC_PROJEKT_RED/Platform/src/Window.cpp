@@ -352,7 +352,7 @@ int Window::TestWindow()
     std::printf("terrain generated: %d vertices, %d faces\n", terrainmesh.VertexCount(), terrainmesh.FaceCount());
 
 
-    const float aspect = (float)WIDTH / (float)HEIGHT;
+    const float aspect = static_cast<float>(WIDTH) / static_cast<float>(HEIGHT);
     const float zNear = 0.1f;
 
     const Maths::Matrix4x4 projection = Maths::Matrix4x4::perspective(

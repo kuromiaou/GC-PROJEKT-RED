@@ -61,13 +61,17 @@ Mesh GenerateTerrain(int size, float spacing)
     Mesh mesh;
     const int pointsPerRow = size + 1;
     const float halfWidth = size * spacing / 2.0f;
-    const float textureRepeat = 2.0f;
+    const float noiseScale = 0.3f;     
+    const int   octaves = 4;           
+    const float maxHeight = 1.5f;     
+    const float textureRepeat = 2.0f;  
+
 
     for (int row = 0; row <= size; row++) {
         for (int col = 0; col <= size; col++) {
             const float z = row * spacing - halfWidth;
             const float x = col * spacing - halfWidth;
-            const float y = FractalNoise(x * 0.3f, z * 0.3f, 4) * 1.5f;
+            const float y = FractalNoise(x * noiseScale, z * noiseScale, octaves) * maxHeight;
             mesh.verts.emplace_back(x, y, z);
 
             const float u = static_cast<float>(col) / static_cast<float>(size) * textureRepeat;

@@ -71,8 +71,8 @@ void Canvas::DrawText(const Text& text, std::vector<uint32_t>& framebuffer,
         const unsigned char c = static_cast<unsigned char>(text.content[i]);
 
   
-        const int col = c % 16;
-        const int row = c / 16;
+        const int col = c % gridSize;
+        const int row = c / gridSize;
 
         Image glyph;
         glyph.texture = text.font;

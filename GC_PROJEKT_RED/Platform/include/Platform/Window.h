@@ -33,8 +33,6 @@ public:
 private:
     inline uint32_t rgb(uint8_t r, uint8_t g, uint8_t b);
     inline int edge(int ax, int ay, int bx, int by, int px, int py);
-    inline uint32_t shade(int e0, int e1, int e2, int wsum,
-        uint32_t c0, uint32_t c1, uint32_t c2);
     inline void clear(uint32_t color);
     inline void clear_zbuffer();
     //inline void put_triangle_textured(int x0, int y0, float z0, float iw0, UV uv0,
