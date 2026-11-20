@@ -1,0 +1,2 @@
+add_executable(AssetTests AssetTests.cpp)
+target_link_libraries(AssetTests PRIVATE AssetEngine)

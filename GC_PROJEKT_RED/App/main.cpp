@@ -1,6 +1,6 @@
 #include "Platform/Window.h"
-#include "AssetEngine/BinaryWriter.h"
-#include "AssetEngine/BinaryReader.h"
+#include "BinaryWriter.h"
+#include "BinaryReader.h"
 
 #include <cstddef>
 #include <cstdint>

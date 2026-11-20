@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-struct Serializer {
+struct AssetEntry {
     std::uint64_t id;
     std::uint32_t type;
     std::uint64_t offset;
