@@ -18,7 +18,11 @@ set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 
+
+enable_testing()
+add_subdirectory(Adapters)
+add_subdirectory(Tests)
+add_subdirectory(Demo)
 add_subdirectory(AssetEngine)
 add_subdirectory(Platform)
 add_subdirectory(App)
-add_subdirectory(Tests)
